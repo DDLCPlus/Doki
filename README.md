@@ -9,7 +9,7 @@ This is not 100% complete and is more of a proof of concept. <br> This project i
 # CREDITS
 Kizby - Assets related patches, and her efforts in preventing bundles from being unloaded. <br>
 Yedrah - Custom background image (In the DokiModTest's asset bundle) <br>
-noia - Everything else
+aaartrtrt - RenDisco (Which we have modified slightly to work with DDLC+'s renpy stuff) <br>
 
 # HOW TO SETUP
 Downlod dnSpy if you don't have it already -> and drag DDLC.dll from the DDLC+'s Managed folder into it, find the "RenpyDialogueLine" class and right click -> Edit Type (Change it from Visibility: NonPublic to Visibility: Public) and save change (File -> Save Module). <br>
