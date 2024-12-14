@@ -190,37 +190,12 @@ namespace Dokiter
                         var loggerType = unityModule.Find("UnityEngine.Logger", false);
                         var debugTypeType = unityModule.Find("UnityEngine.Debug", false);
 
-                        if (debugLogHandlerType == null || loggerType == null || debugTypeType == null)
-                        {
-                            MessageBox.Show("Failed to find one or more required types in UnityEngine.CoreModule.dll!", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
-                            return;
-                        }
-
                         // Find constructors and static field
                         var debugLogHandlerCtor = debugLogHandlerType.FindMethod(".ctor");
                         var loggerCtor = loggerType.FindMethods(".ctor").First(x => x.IsPublic);
                         var sLoggerField = debugTypeType.FindField("s_Logger");
 
 
-                        if (debugLogHandlerCtor == null)
-                        {
-                            MessageBox.Show("Failed to find required constructors or static field! 1", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
-                            return;
-                        }
-
-                        if (loggerCtor == null)
-                        {
-                            //loggerType not null
-
-                            MessageBox.Show("Failed to find required constructors or static field! 2", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
-                            return;
-                        }
-
-                        if (sLoggerField == null)
-                        {
-                            MessageBox.Show("Failed to find required constructors or static field! 3", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
-                            return;
-                        }
                         // Inject IL into Debug::.cctor
                         var il = cctor.Body.Instructions;
                         il.Clear();
@@ -231,7 +206,6 @@ namespace Dokiter
                         il.Add(Instruction.Create(OpCodes.Stsfld, sLoggerField));            // Debug.s_Logger = Logger
                         il.Add(Instruction.Create(OpCodes.Ret));                             // Return from .cctor
 
-                        // Write the modified module
                         try
                         {
                             unityModule.Write($"{managedDir}\\UnityEngine.CoreModule_temp.dll");
@@ -254,7 +228,7 @@ namespace Dokiter
                         File.WriteAllLines("ddlcplus.config",
                         [
                             GlobalUtils.DDLCPlusPath,
-                        GlobalUtils.CurrentVersion
+                            GlobalUtils.CurrentVersion
                         ]);
 
                         InstallButton.Content = "Uninstall";
