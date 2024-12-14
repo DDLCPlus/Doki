@@ -59,7 +59,7 @@ namespace DokiModTest
             {
                 List<DDLCScript> allScripts = new List<DDLCScript>
                 {
-                    new DDLCScript(this, "script.rpy", "dokimodtest_shennanigans")
+                    new DDLCScript(this, "script.rpy")
                 };
 
                 return allScripts;

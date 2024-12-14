@@ -15,6 +15,9 @@
     <Reference Include="DDLC">
       <HintPath>C:\Program Files (x86)\Steam\steamapps\common\Doki Doki Literature Club Plus\Doki Doki Literature Club Plus_Data\Managed\DDLC.dll</HintPath>
     </Reference>
+    <Reference Include="RenDisco">
+      <HintPath>..\..\rendisco\RenDisco\bin\Debug\netstandard2.1\RenDisco.dll</HintPath>
+    </Reference>
     <Reference Include="SimpleExpressionEngine">
       <HintPath>C:\Program Files (x86)\Steam\steamapps\common\Doki Doki Literature Club Plus\Doki Doki Literature Club Plus_Data\Managed\SimpleExpressionEngine.dll</HintPath>
     </Reference>

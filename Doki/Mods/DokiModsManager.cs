@@ -13,9 +13,17 @@ namespace Doki.Mods
     {
         public static List<DokiMod> Mods = new List<DokiMod>();
 
+        public static int ActiveScriptModifierIndex = 0;
+
         public static void LoadMods()
         {
             ConsoleUtils.Log("Loading Doki Mods..");
+
+            if (Directory.GetFiles("Doki\\Mods").Length == 0)
+            {
+                ActiveScriptModifierIndex = -1;
+                return;
+            }
 
             foreach (var file in Directory.GetFiles("Doki\\Mods"))
             {

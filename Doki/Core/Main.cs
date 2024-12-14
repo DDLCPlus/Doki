@@ -1,4 +1,5 @@
-﻿using Doki.Mods;
+﻿using Doki.Interpreter;
+using Doki.Mods;
 using Doki.Utils;
 using System;
 using System.Collections.Generic;
@@ -25,13 +26,17 @@ namespace Doki
                 return;
             }
 
-            DokiModsManager.LoadMods();
+            ConsoleUtils.Log("Setting up rendisco renpyparser..");
 
-            ConsoleUtils.Log("Attempting to patch Renpy stuff..");
+            RenpyUtils.Parser = new RenDisco.RenpyParser();
+
+            ConsoleUtils.Log("Loading mods..");
+
+            DokiModsManager.LoadMods();
 
             PatchUtils.ApplyPatches();
 
-            ConsoleUtils.Log("Initialized BootLoader");
+            ConsoleUtils.Log("Initialized BootLoader successfully");
         }
     }
 }

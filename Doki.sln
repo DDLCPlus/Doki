@@ -7,6 +7,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Doki", "Doki\Doki.csproj", 
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DokiModTest", "DokiModTest\DokiModTest.csproj", "{DF23D2CC-498A-4C03-B44C-0398F3CC008E}"
 EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Dokiter", "Dokiter\Dokiter.csproj", "{72EC1409-B07E-4426-BA7F-7C9717DDA7D7}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -21,6 +23,10 @@ Global
 		{DF23D2CC-498A-4C03-B44C-0398F3CC008E}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{DF23D2CC-498A-4C03-B44C-0398F3CC008E}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{DF23D2CC-498A-4C03-B44C-0398F3CC008E}.Release|Any CPU.Build.0 = Release|Any CPU
+		{72EC1409-B07E-4426-BA7F-7C9717DDA7D7}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{72EC1409-B07E-4426-BA7F-7C9717DDA7D7}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{72EC1409-B07E-4426-BA7F-7C9717DDA7D7}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{72EC1409-B07E-4426-BA7F-7C9717DDA7D7}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

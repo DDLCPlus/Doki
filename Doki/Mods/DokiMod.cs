@@ -2,6 +2,7 @@
 using Doki.Interpreter;
 using Doki.Utils;
 using HarmonyLib;
+using RenDisco;
 using RenpyParser;
 using RenPyParser.VGPrompter.DataHolders;
 using System;
@@ -48,26 +49,6 @@ namespace Doki.Mods
         public virtual void OnNextLine()
         {
 
-        }
-
-        public virtual Tuple<BlockEntryPoint, RenpyBlock> Execute(DDLCScript script)
-        {
-            if (script == null)
-                return null;
-
-            List<string> Lines = script.GetScriptContents();
-
-            if (Lines.Count() == 0)
-                return null;
-
-            Interpreter.Interpreter.Reset();
-
-            Interpreter.Interpreter.SetEnv(script.Label, this);
-
-            foreach (var line in Lines)
-                Interpreter.Interpreter.ParseLine(line);
-
-            return Interpreter.Interpreter.WorkingBlock.Build();
         }
     }
 }
