@@ -73,7 +73,7 @@ THE SOFTWARE.
 
                     ConsoleUtils.Log($"Parsing {scriptPath}...");
 
-                    var blocks = RenpyScriptProcessor.ProcessScriptFromFile(scriptPath);
+                    RenpyScriptProcessor.ProcessScriptFromFile(scriptPath);
 
                     ConsoleUtils.Log($"Blocks processed for script");
                 }

@@ -142,22 +142,20 @@ namespace Doki.Utils
 
         private static bool ResolveLabelPatch(ref RenpyScript __instance, ref ValueTuple<RenpyBlock, int> __result, ref string label)
         {
-            Console.WriteLine($"Resolved normal label -> {label}");
+            //Console.WriteLine($"Resolved normal label -> {label}");
 
             return true;
         }
 
         private static bool TryResolveLabelPatch(ref RenpyScript __instance, ref string label)
         {
-            Console.WriteLine($"Resolved normal label -> {label}");
+            //Console.WriteLine($"Resolved normal label -> {label}");
 
             return true;
         }
 
         private static bool SayPatch(ref string __0, ref string __1, ref DialogueLine __2)
         {
-            Console.WriteLine("Say patch triggered!");
-
             if (DokiModsManager.ActiveScriptModifierIndex == -1)
                 return true;
 
