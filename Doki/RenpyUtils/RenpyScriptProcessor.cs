@@ -26,13 +26,11 @@ namespace Doki.RenpyUtils
         {
             Tuple<BlockEntryPoint, RenpyBlock> retTuple = default;
 
-            string labelExecutionOverride = Path.GetFileNameWithoutExtension(pathToScript);
-
             List<RenpyCommand> Commands = Parser.ParseFromFile(pathToScript);
 
             if (Commands.Count() == 0)
                 return null;
-
+             
             int[] beginningIndexes = Commands.Where(x => x.Type == "label").Select(x => Commands.IndexOf(x)).ToArray();
 
             if (beginningIndexes.Length == 0)
