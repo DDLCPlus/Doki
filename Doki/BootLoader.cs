@@ -15,7 +15,6 @@ namespace Doki
             if (!DontLoad)
             {
                 ConsoleUtils.ShowConsole("Doki - A DDLC+ Project");
-
                 ConsoleUtils.Log("Created GameObject to handle BootLoader.. initializing..");
 
                 var obj = new GameObject();

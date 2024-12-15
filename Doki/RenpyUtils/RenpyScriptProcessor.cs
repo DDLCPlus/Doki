@@ -12,27 +12,21 @@ namespace Doki.RenpyUtils
 {
     public static class RenpyScriptProcessor
     {
-        public static List<Tuple<BlockEntryPoint, RenpyBlock>> ModBlocks { get; set; }
-
         public static Dictionary<string, Tuple<BlockEntryPoint, RenpyBlock>> BlocksDict { get; set; } //Block label -> Commands translated
 
         public static RenDisco.RenpyParser Parser { get; set; }
 
         static RenpyScriptProcessor()
         {
-            ModBlocks = new List<Tuple<BlockEntryPoint, RenpyBlock>>();
             BlocksDict = new Dictionary<string, Tuple<BlockEntryPoint, RenpyBlock>>();
             Parser = new RenDisco.RenpyParser();
         }
 
         public static Tuple<BlockEntryPoint, RenpyBlock> ProcessScriptFromFile(string pathToScript)
         {
+            Tuple<BlockEntryPoint, RenpyBlock> retTuple = default;
+
             string labelExecutionOverride = Path.GetFileNameWithoutExtension(pathToScript);
-
-            Tuple<BlockEntryPoint, RenpyBlock> BlocksFound = ModBlocks.FirstOrDefault(x => x.Item2.Label == labelExecutionOverride);
-
-            if (BlocksFound != null || BlocksFound != default)
-                return BlocksFound;
 
             List<RenpyCommand> Commands = Parser.ParseFromFile(pathToScript);
 
@@ -49,10 +43,9 @@ namespace Doki.RenpyUtils
             for (int i = 0; i < beginningIndexes.Length; i++)
             {
                 int startIndex = beginningIndexes[i];
+                int endIndex = i + 1 < beginningIndexes.Length ? beginningIndexes[i + 1] : Commands.Count;
 
                 string label = ((Label)Commands[startIndex]).Name;
-
-                int endIndex = i + 1 < beginningIndexes.Length ? beginningIndexes[i + 1] : Commands.Count;
 
                 List<RenpyCommand> blockCommands = Commands.GetRange(startIndex, endIndex - startIndex);
 
@@ -60,12 +53,12 @@ namespace Doki.RenpyUtils
 
                 RenpyBlock block = RenpyUtils.Translate(label, blockCommands);
 
-                BlocksDict.Add(label, new Tuple<BlockEntryPoint, RenpyBlock>(entryPoint, block)); //will be used by resolve label
+                retTuple = new Tuple<BlockEntryPoint, RenpyBlock>(entryPoint, block);
 
-                BlocksFound = new Tuple<BlockEntryPoint, RenpyBlock>(entryPoint, block);
+                BlocksDict.Add(label, retTuple); 
             }
 
-            return BlocksFound;
+            return retTuple;
         }
     }
 }

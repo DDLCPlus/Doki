@@ -51,14 +51,7 @@ THE SOFTWARE.
         public static RenpyExecutionContext GetContext() => Context;
 
         public static List<Dialogue> CustomDialogue = new List<Dialogue>();
-
-        public static List<RenpyShow> BaseShowContents = new List<RenpyShow>();
-
-        public static List<RenpyShow> CustomShowContents = new List<RenpyShow>();
-
         public static List<int> CustomTextIDs = new List<int>();
-
-        public static RenpyScriptExecutionContext ScriptExecutionContext { get; set; }
 
         public static Dialogue RetrieveLineFromText(string text)
         {
@@ -71,10 +64,21 @@ THE SOFTWARE.
             return null;
         }
 
+        public static Dialogue RetrieveLineFromText(int textID)
+        {
+            foreach (var line in CustomDialogue)
+            {
+                if (line.TextID == textID)
+                    return line;
+            }
+
+            return null;
+        }
+
+
         public static RenpyBlock Translate(string label, List<RenpyCommand> commandsPassed)
         {
             List<Line> Lines = new List<Line>();
-
             List<RenpyCommand> commands = ((Label)commandsPassed.First()).Commands;
 
             foreach (RenpyCommand command in commands)
@@ -139,34 +143,6 @@ THE SOFTWARE.
             renpyBlock.Contents = Lines;
 
             return renpyBlock;
-        }
-
-        public static Dialogue RetrieveLineFromText(int textID)
-        {
-            foreach (var line in CustomDialogue)
-            {
-                if (line.TextID == textID)
-                    return line;
-            }
-
-            return null;
-        }
-
-        public static RenpyShow Show(string data)
-        {
-            foreach (var show in BaseShowContents)
-            {
-                if (show.ShowData == data)
-                    return show;
-            }
-
-            foreach (var customshow in CustomShowContents)
-            {
-                if (customshow.ShowData == data)
-                    return customshow;
-            }
-
-            return null;
         }
 
         public static Line Dialogue(string label, string what, bool quotes = true, bool skipWait = false, string who = "mc", bool glitch = false)
