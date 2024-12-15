@@ -12,15 +12,11 @@ namespace Doki.Extensions
         public int TextID { get; set; }
 
         public string Label { get; set; }
-
         public string Character { get; set; }
-
         public string Text { get; set; }
 
         public bool Glitch { get; set; }
-
         public bool SkipWait { get; set; }
-
         public bool FromPlayer { get; set; }
 
         public RenpyDialogueLine Line { get; set; }

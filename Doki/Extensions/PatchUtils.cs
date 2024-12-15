@@ -41,11 +41,8 @@ namespace Doki.Utils
 			try
             {
                 HarmonyInstance.Patch(typeof(Blocks).GetMethod("OnAfterDeserialize"), postfix: new HarmonyMethod(typeof(PatchUtils).GetMethod("ScriptExecutionPatch", BindingFlags.Static | BindingFlags.NonPublic)));
-                //HarmonyInstance.Patch(typeof(Blocks).GetMethod("OnAfterDeserialize"), new HarmonyMethod(typeof(PatchUtils).GetMethod("ScriptExecutionPatch", BindingFlags.Static | BindingFlags.NonPublic)));
                 HarmonyInstance.Patch(typeof(RenpyScript).GetMethod("ResolveLabel"), new HarmonyMethod(typeof(PatchUtils).GetMethod("ResolveLabelPatch", BindingFlags.Static | BindingFlags.NonPublic)));
                 HarmonyInstance.Patch(typeof(RenpyScript).GetMethod("TryResolveLabel"), new HarmonyMethod(typeof(PatchUtils).GetMethod("TryResolveLabelPatch", BindingFlags.Static | BindingFlags.NonPublic)));
-                //HarmonyInstance.Patch(typeof(Lines).GetMethod("GetValue"), new HarmonyMethod(typeof(PatchUtils).GetMethod("GetValuePatch", BindingFlags.Static | BindingFlags.NonPublic)));
-
                 HarmonyInstance.Patch(typeof(UnityEngine.Logger).GetMethod("Log", new[] { typeof(LogType), typeof(object) }), new HarmonyMethod(typeof(PatchUtils).GetMethod("DebugPatch", BindingFlags.Static | BindingFlags.NonPublic)));
 
                 foreach (var mod in DokiModsManager.Mods)
@@ -54,10 +51,7 @@ namespace Doki.Utils
                     {
                         foreach (var prefix in mod.Prefixes)
                         {
-                            ConsoleUtils.Log($"[MOD PATCH PREFIXES -> {mod.Name}]: Patching {prefix.Key.Name}...");
-
                             HarmonyInstance.Patch(prefix.Key, prefix: prefix.Value);
-
                             ConsoleUtils.Log($"[MOD PATCH PREFIXES -> {mod.Name}]: Patched {prefix.Key.Name}!");
                         }
                     }
@@ -66,10 +60,7 @@ namespace Doki.Utils
                     {
                         foreach (var postfix in mod.Postfixes)
                         {
-                            ConsoleUtils.Log($"[MOD PATCH POSTFIXES -> {mod.Name}]: Patching {postfix.Key.Name}...");
-
                             HarmonyInstance.Patch(postfix.Key, postfix: postfix.Value);
-
                             ConsoleUtils.Log($"[MOD PATCH POSTFIXES -> {mod.Name}]: Patched {postfix.Key.Name}!");
                         }
                     }
@@ -86,7 +77,6 @@ namespace Doki.Utils
             finally
             {
                 ConsoleUtils.Log($"All Patches (base & mods) applied.");
-
                 Patched = true;
             }
         }

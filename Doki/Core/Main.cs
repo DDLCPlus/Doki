@@ -52,7 +52,6 @@ THE SOFTWARE.
             }
 
             ConsoleUtils.Log("RenDisco parser setup.");
-
             ConsoleUtils.Log("Loading mods..");
 
             DokiModsManager.LoadMods();

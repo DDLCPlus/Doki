@@ -16,21 +16,16 @@ namespace Doki.Mods
     public class DokiMod
     {
         public virtual string ID => "DokiMod";
-
         public virtual string Name => "A Doki Mod";
-
         public virtual string Author => "A Doki Mod Developer";
-
         public virtual string Version => "1.0";
 
         public List<AssetBundle> ModBundles = new List<AssetBundle>();
 
         public virtual Dictionary<MethodBase, HarmonyMethod> Prefixes { get; set; }
-
         public virtual Dictionary<MethodBase, HarmonyMethod> Postfixes { get; set; }
 
         public string ScriptsPath { get; set; }
-
         public string AssetsPath { get; set; }
 
         public bool ModifiesContext { get; set; }

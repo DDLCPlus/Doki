@@ -36,7 +36,6 @@ namespace Doki.Mods
                             ConsoleUtils.Log($"Trying to load Doki Mod: {Path.GetFileNameWithoutExtension(file)}");
 
                             var assembly = Assembly.LoadFrom(Path.GetFullPath(file));
-
                             var types = assembly.GetTypes().Where(x => x.IsSubclassOf(typeof(DokiMod)));
 
                             if (types.Count() == 0)
@@ -50,7 +49,6 @@ namespace Doki.Mods
                             if (Directory.Exists($"{directory}\\Scripts") && Directory.GetFiles($"{directory}\\Scripts").Length > 0)
                             {
                                 mod.ScriptsPath = $"{directory}\\Scripts";
-
                                 mod.ModifiesContext = true;
                             }
 
@@ -63,6 +61,7 @@ namespace Doki.Mods
                         catch (Exception e)
                         {
                             Console.WriteLine(e.ToString());
+
                             ConsoleUtils.Log($"An error occurred while trying to load Doki Mod: {Path.GetFileNameWithoutExtension(file)}");
                         }
                     }
