@@ -1,5 +1,4 @@
-﻿using Doki.Game;
-using Doki.Mods;
+﻿using Doki.Mods;
 using HarmonyLib;
 using System;
 using System.Collections.Generic;
@@ -9,7 +8,7 @@ using System.Text;
 using System.Threading.Tasks;
 using UnityEngine;
 
-namespace Doki.Utils
+namespace Doki.Extensions
 {
     public static class AssetUtils
     {
@@ -35,7 +34,7 @@ namespace Doki.Utils
         {
             var loadAssetInternal = AccessTools.Method(typeof(AssetBundle), "LoadAsset_Internal");
 
-            return (T)((object)loadAssetInternal.Invoke(bundle, new object[] { name, typeof(T) }));
+            return (T)loadAssetInternal.Invoke(bundle, new object[] { name, typeof(T) });
         }
     }
 }

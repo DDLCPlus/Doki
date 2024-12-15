@@ -1,5 +1,6 @@
-﻿using Doki.Interpreter;
+﻿using Doki.Extensions;
 using Doki.Mods;
+using Doki.RenpyUtils;
 using Doki.Utils;
 using System;
 using System.Collections.Generic;
@@ -50,13 +51,33 @@ THE SOFTWARE.
                 return;
             }
 
-            ConsoleUtils.Log("Setting up rendisco renpyparser..");
-
-            RenpyUtils.Parser = new RenDisco.RenpyParser();
+            ConsoleUtils.Log("RenDisco parser setup.");
 
             ConsoleUtils.Log("Loading mods..");
 
             DokiModsManager.LoadMods();
+
+            DokiMod contextMod = DokiModsManager.Mods.FirstOrDefault(x => x.ModifiesContext);
+
+            if (contextMod != null)
+            {
+                DokiModsManager.ActiveScriptModifierIndex = DokiModsManager.Mods.IndexOf(contextMod);
+
+                ConsoleUtils.Log("Parsing blocks for Mod's scripts..");
+
+                string[] scriptPaths = Directory.GetFiles(contextMod.ScriptsPath);
+
+                for (int i = 0; i < scriptPaths.Count(); i++)
+                {
+                    string scriptPath = scriptPaths[i];
+
+                    ConsoleUtils.Log($"Parsing {scriptPath}...");
+
+                    var blocks = RenpyScriptProcessor.ProcessScriptFromFile(scriptPath);
+
+                    ConsoleUtils.Log($"Blocks processed for script");
+                }
+            }
 
             PatchUtils.ApplyPatches();
 

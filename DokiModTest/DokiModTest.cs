@@ -1,5 +1,4 @@
-﻿using Doki.Game;
-using Doki.Mods;
+﻿using Doki.Mods;
 using Doki.Utils;
 using HarmonyLib;
 using RenpyLauncher;
@@ -30,13 +29,6 @@ namespace DokiModTest
 
         public override string Version => "1.0";
 
-        public override string WorkingDirectory => "DokiModTest";
-
-        public override string ScriptsDirectory => "Scripts";
-
-        public override string CustomAssetsDirectory => "Assets";
-
-
         public override Dictionary<MethodBase, HarmonyMethod> Prefixes => new Dictionary<MethodBase, HarmonyMethod>()
         {
             {
@@ -52,19 +44,6 @@ namespace DokiModTest
                 new HarmonyLib.HarmonyMethod(typeof(DokiModTest).GetMethod("SkipToLoginPatch", BindingFlags.Static | BindingFlags.NonPublic))
             }
         };
-
-        public override List<DDLCScript> Scripts
-        {
-            get
-            {
-                List<DDLCScript> allScripts = new List<DDLCScript>
-                {
-                    new DDLCScript(this, "script.rpy")
-                };
-
-                return allScripts;
-            }
-        }
 
         private static bool QuitPatch(ref bool __result)
         {

@@ -1,4 +1,4 @@
-﻿using Doki.Utils;
+﻿using Doki.Extensions;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -19,41 +19,52 @@ namespace Doki.Mods
         {
             ConsoleUtils.Log("Loading Doki Mods..");
 
-            if (Directory.GetFiles("Doki\\Mods").Length == 0)
+            if (Directory.GetDirectories("Doki\\Mods").Length == 0)
             {
                 ActiveScriptModifierIndex = -1;
                 return;
             }
 
-            foreach (var file in Directory.GetFiles("Doki\\Mods"))
+            foreach (var directory in Directory.GetDirectories("Doki\\Mods"))
             {
-                if (Path.GetExtension(file) == ".dll")
+                foreach (var file in Directory.GetFiles(directory))
                 {
-                    try
+                    if (Path.GetExtension(file) == ".dll")
                     {
-                        ConsoleUtils.Log($"Trying to load Doki Mod: {Path.GetFileNameWithoutExtension(file)}");
-
-                        var assembly = Assembly.LoadFrom(Path.GetFullPath(file));
-
-                        var types = assembly.GetTypes().Where(x => x.IsSubclassOf(typeof(DokiMod)));
-
-                        if (types.Count() == 0)
+                        try
                         {
-                            ConsoleUtils.Log($"An error occurred while trying to load Doki Mod: {Path.GetFileNameWithoutExtension(file)} -> There was no DokiMod subclass.");
+                            ConsoleUtils.Log($"Trying to load Doki Mod: {Path.GetFileNameWithoutExtension(file)}");
+
+                            var assembly = Assembly.LoadFrom(Path.GetFullPath(file));
+
+                            var types = assembly.GetTypes().Where(x => x.IsSubclassOf(typeof(DokiMod)));
+
+                            if (types.Count() == 0)
+                            {
+                                ConsoleUtils.Log($"An error occurred while trying to load Doki Mod: {Path.GetFileNameWithoutExtension(file)} -> There was no DokiMod subclass.");
+                                continue;
+                            }
+
+                            DokiMod mod = Activator.CreateInstance(types.First()) as DokiMod;
+
+                            if (Directory.Exists($"{directory}\\Scripts") && Directory.GetFiles($"{directory}\\Scripts").Length > 0)
+                            {
+                                mod.ScriptsPath = $"{directory}\\Scripts";
+
+                                mod.ModifiesContext = true;
+                            }
+
+                            mod.OnLoad();
+
+                            Mods.Add(mod);
+
+                            ConsoleUtils.Log($"Loaded {mod.Name} by {mod.Author} (version: {mod.Version}) successfully.");
                         }
-
-                        DokiMod mod = Activator.CreateInstance(types.First()) as DokiMod;
-
-                        mod.OnLoad();
-
-                        Mods.Add(mod);
-
-                        ConsoleUtils.Log($"Loaded {mod.Name} by {mod.Author} (version: {mod.Version}) successfully.");
-                    }
-                    catch(Exception e)
-                    {
-                        Console.WriteLine(e.ToString());
-                        ConsoleUtils.Log($"An error occurred while trying to load Doki Mod: {Path.GetFileNameWithoutExtension(file)}");
+                        catch (Exception e)
+                        {
+                            Console.WriteLine(e.ToString());
+                            ConsoleUtils.Log($"An error occurred while trying to load Doki Mod: {Path.GetFileNameWithoutExtension(file)}");
+                        }
                     }
                 }
             }

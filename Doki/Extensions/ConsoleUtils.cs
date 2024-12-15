@@ -5,7 +5,7 @@ using System.Linq;
 using System.Runtime.InteropServices;
 using System.Text;
 
-namespace Doki.Utils
+namespace Doki.Extensions
 {
 
     public static class ConsoleUtils

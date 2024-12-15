@@ -1,5 +1,4 @@
-﻿using Doki.Game;
-using Doki.Mods;
+﻿using Doki.Mods;
 using Doki.Utils;
 using RenDisco;
 using RenpyParser;
@@ -15,9 +14,9 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Tasks;
 using UnityEngine;
-using Dialogue = Doki.Game.Dialogue;
+using Dialogue = Doki.Extensions.Dialogue;
 
-namespace Doki.Interpreter
+namespace Doki.RenpyUtils
 {
     /*
      RENDISCO MIT LICENSE:
@@ -45,12 +44,6 @@ THE SOFTWARE.
 
     public static class RenpyUtils
     {
-        public static void AddToHistory(string who, string what, string label = "ch0_main") =>
-            Renpy.HistoryManager.HistoryLines.Enqueue(new RenpyHistoryEntry(who, what, label));
-
-        public static void AddToHistory(string who, string what) =>
-            Renpy.HistoryManager.HistoryLines.Enqueue(new RenpyHistoryEntry(who, what, Renpy.CurrentLabel));
-
         private static RenpyExecutionContext Context { get; set; }
 
         public static void SetContext(RenpyExecutionContext context) => Context = context;
@@ -65,8 +58,6 @@ THE SOFTWARE.
 
         public static List<int> CustomTextIDs = new List<int>();
 
-        public static RenDisco.RenpyParser Parser { get; set; }
-
         public static RenpyScriptExecutionContext ScriptExecutionContext { get; set; }
 
         public static Dialogue RetrieveLineFromText(string text)
@@ -80,13 +71,15 @@ THE SOFTWARE.
             return null;
         }
 
-        public static RenpyBlock Translate(string label, List<RenpyCommand> commands)
+        public static RenpyBlock Translate(string label, List<RenpyCommand> commandsPassed)
         {
             List<Line> Lines = new List<Line>();
 
-            foreach(RenpyCommand command in commands)
+            List<RenpyCommand> commands = ((Label)commandsPassed.First()).Commands;
+
+            foreach (RenpyCommand command in commands)
             {
-                switch(command)
+                switch (command)
                 {
                     case RenDisco.Dialogue dialogue:
                         Lines.Add(Dialogue(label, dialogue.Text, true, false, dialogue.Character, false));
@@ -101,13 +94,13 @@ THE SOFTWARE.
                     case RenDisco.Show show:
                         Lines.Add(new RenpyShow(show.Raw));
                         break;
-                    case RenDisco.Jump jump:
+                    case Jump jump:
                         Lines.Add(new RenpyGoTo(jump.Label, false, $"jump {jump.Label}"));
                         break;
                     case RenDisco.Scene scene:
                         Lines.Add(new RenpyScene(scene.Raw));
                         break;
-                    case RenDisco.PlayMusic playMusic:
+                    case PlayMusic playMusic:
                         Lines.Add(new RenpyPlay()
                         {
                             play = new RenpyParser.Play()
@@ -118,26 +111,32 @@ THE SOFTWARE.
                             }
                         });
                         break;
-                    case RenDisco.StopMusic stopMusic:
+                    case StopMusic stopMusic:
                         Lines.Add(new RenpyStop()
                         {
-                            stop = new RenpyParser.Stop()
+                            stop = new Stop()
                             {
                                 Channel = Channel.Music,
                                 fadeout = (float)stopMusic.FadeOut,
                             }
                         });
                         break;
-                    case RenDisco.Pause pause:
+                    case Pause pause:
                         Lines.Add(new RenpyPause(pause.Raw, null));
                         break;
-                    case RenDisco.Narration narration:
+                    case Narration narration:
                         Lines.Add(Dialogue(label, narration.Text, false, false, "mc", false));
+                        break;
+                    case RenDisco.Return _:
+                        Lines.Add(new RenpyReturn());
                         break;
                 }
             }
 
-            RenpyBlock renpyBlock = new RenpyBlock(label, true, RenpyBlockAttributes.None, Lines);
+            RenpyBlock renpyBlock = new RenpyBlock(label);
+
+            renpyBlock.callParameters = [];
+            renpyBlock.Contents = Lines;
 
             return renpyBlock;
         }

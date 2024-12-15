@@ -5,7 +5,7 @@ using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Doki.Utils
+namespace Doki.Extensions
 {
     public static class ReflectionUtils
     {

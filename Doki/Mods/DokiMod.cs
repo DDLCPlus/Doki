@@ -1,6 +1,4 @@
-﻿using Doki.Game;
-using Doki.Interpreter;
-using Doki.Utils;
+﻿using Doki.Utils;
 using HarmonyLib;
 using RenDisco;
 using RenpyParser;
@@ -27,19 +25,15 @@ namespace Doki.Mods
 
         public List<AssetBundle> ModBundles = new List<AssetBundle>();
 
-        public virtual List<DDLCScript> Scripts { get; set; }
-
-        public Dictionary<int, Tuple<string, string>> IdentifiersToRelativePaths = new Dictionary<int, Tuple<string, string>>();
-
-        public virtual string WorkingDirectory => "DokiModTest";
-
-        public virtual string ScriptsDirectory => "Scripts";
-
-        public virtual string CustomAssetsDirectory => "Assets";
-
         public virtual Dictionary<MethodBase, HarmonyMethod> Prefixes { get; set; }
 
         public virtual Dictionary<MethodBase, HarmonyMethod> Postfixes { get; set; }
+
+        public string ScriptsPath { get; set; }
+
+        public string AssetsPath { get; set; }
+
+        public bool ModifiesContext { get; set; }
 
         public virtual void OnLoad()
         {

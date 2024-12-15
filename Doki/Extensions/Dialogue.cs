@@ -3,10 +3,9 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using Doki.Utils;
 using RenpyParser;
 
-namespace Doki.Game
+namespace Doki.Extensions
 {
     public class Dialogue
     {
