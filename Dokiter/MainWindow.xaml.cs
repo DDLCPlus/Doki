@@ -79,7 +79,6 @@ namespace Dokiter
 
             File.Delete($"{GlobalUtils.DDLCPlusPath}\\Doki.dll");
             File.Delete($"{GlobalUtils.DDLCPlusPath}\\0Harmony.dll");
-            File.Delete($"{GlobalUtils.DDLCPlusPath}\\RenDisco.dll");
 
             File.Delete("ddlcplus.config");
 
@@ -126,13 +125,6 @@ namespace Dokiter
                             return;
                         }
 
-                        if (!File.Exists($"RenDisco.dll"))
-                        {
-                            MessageBox.Show("Please make sure RenDisco.dll is in the same folder as the manager.", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
-
-                            return;
-                        }
-
                         if (!File.Exists($"0Harmony.dll"))
                         {
                             MessageBox.Show("Please make sure 0Harmony.dll is in the same folder as the manager.", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
@@ -153,7 +145,6 @@ namespace Dokiter
 
                         File.Copy($"0Harmony.dll", $"{selectedDirectory}\\0Harmony.dll", overwrite: true);
                         File.Copy($"Doki.dll", $"{selectedDirectory}\\Doki.dll", overwrite: true);
-                        File.Copy($"RenDisco.dll", $"{selectedDirectory}\\RenDisco.dll", overwrite: true);
 
                         string managedDir = $"{GlobalUtils.DDLCPlusPath}\\Doki Doki Literature Club Plus_Data\\Managed";
 
