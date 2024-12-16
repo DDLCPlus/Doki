@@ -52,6 +52,9 @@ namespace Doki.Mods
                                 mod.ModifiesContext = true;
                             }
 
+                            if (Directory.Exists($"{directory}\\Assets") && Directory.GetFiles($"{directory}\\Assets").Length > 0)
+                                mod.AssetsPath = $"{directory}\\Assets";
+
                             mod.OnLoad();
 
                             Mods.Add(mod);

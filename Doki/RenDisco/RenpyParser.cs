@@ -1,3 +1,4 @@
+using RenpyParser;
 using System;
 using System.Collections.Generic;
 using System.Data.Common;
@@ -45,6 +46,7 @@ namespace RenDisco {
             // Process each line in the script
             foreach (string line in lines)
             {
+
                 // Calculate indentation level and remove leading whitespace
                 string trimmedLine = line.TrimStart();
                 int rawIndentationLevel = line.Length - trimmedLine.Length;
@@ -306,7 +308,7 @@ namespace RenDisco {
             {
                 string namePart = trimmedLine.Split('=')[0].Trim();
                 string valuePart = ExtractAfter(trimmedLine, "=").Trim();
-                
+
 
                 var defineCmd = new Define
                 {

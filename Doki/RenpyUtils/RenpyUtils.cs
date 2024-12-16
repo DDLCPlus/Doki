@@ -1,7 +1,10 @@
 ﻿using Doki.Mods;
 using Doki.Utils;
+using HarmonyLib;
 using RenDisco;
 using RenpyParser;
+using RenPyParser;
+using RenPyParser.Transforms;
 using RenPyParser.VGPrompter.DataHolders;
 using SimpleExpressionEngine;
 using System;
@@ -52,6 +55,7 @@ THE SOFTWARE.
 
         public static List<Dialogue> CustomDialogue = new List<Dialogue>();
         public static List<int> CustomTextIDs = new List<int>();
+        public static Dictionary<Tuple<int, string>, RenpyDefinition> CustomDefinitions = new Dictionary<Tuple<int, string>, RenpyDefinition>();
 
         public static Dialogue RetrieveLineFromText(string text)
         {
@@ -73,6 +77,127 @@ THE SOFTWARE.
             }
 
             return null;
+        }
+
+        public static void DumpBlock(RenpyBlock block)
+        {
+            string output = $"label {block.Label}:\n";
+
+            foreach(var line in block.Contents)
+            {
+                switch(line)
+                {
+                    case RenpyShow renpyShow:
+                        var show = renpyShow.show;
+                        var toLog = "show";
+
+                        if (show.IsLayer)
+                        {
+                            toLog += " layer " + show.Name;
+                        }
+                        else
+                        {
+                            toLog += " " + show.AssetName;
+                        }
+
+                        if (show.As != "")
+                        {
+                            toLog += " as " + show.As;
+                        }
+
+                        var transform = show.TransformName;
+
+                        if (transform == "" && show.IsLayer)
+                        {
+                            transform = "resetlayer";
+                        }
+
+                        if (transform != "")
+                        {
+                            toLog += " at " + show.TransformName;
+                        }
+
+                        if (show.HasBehind)
+                        {
+                            toLog += " behind " + show.Behind;
+                        }
+                        if (!show.IsLayer)
+                        {
+                            toLog += " onlayer " + show.Layer;
+                        }
+                        if (show.HasZOrder)
+                        {
+                            toLog += " zorder " + show.ZOrder;
+                        }
+
+                        output += toLog + "\n";
+                        break;
+                    case RenpyLoadImage loadImage:
+                        output += $"image bg {loadImage.key} = \"{loadImage.fullImageDetails}\"\n";
+                        break;
+                    case RenpyHide hide:
+                        output += hide.HideData + "\n";
+                        break;
+                    case RenpyPlay play:
+                        output += play.PlayData + "\n";
+                        break;
+                    case RenpyPause pause:
+                        output += pause.PauseData + "\n";
+                        break;
+                    case RenpyGoTo goTo:
+                        var gotoDump = goTo.IsCall ? "call " : "jump ";
+
+                        if (goTo.TargetLabel != "")
+                            gotoDump += goTo.TargetLabel;
+                        else
+                            gotoDump += goTo.targetExpression.ToString();
+
+                        if (goTo.IsCall)
+                        {
+                            gotoDump += "(" + goTo.callParameters.Join(p => p.expression.ToString()) + ")";
+                        }
+
+                        output += gotoDump + "\n";
+                        break;
+                    case RenpyStop stop:
+                        output += stop.StopData + "\n";
+                        break;
+                    case RenpyQueue queue:
+                        output += queue.QueueData + "\n";
+                        break;
+                    case RenpyNOP nop:
+                        output += "pass\n";
+                        break;
+                    case RenpyReturn ret:
+                        output += "return\n";
+                        break;
+                    case RenpySize size:
+                        output += size.SizeData + "\n";
+                        break;
+                    case RenpyEasedTransform renpyEasedTransform:
+                        output += renpyEasedTransform.TransformCommand + "\n";
+                        break;
+                    case RenpyGoToLineUnless renpyGoToLineUnless:
+                        output += "goto " + renpyGoToLineUnless.TargetLine + " unless " + renpyGoToLineUnless.ConditionText + "\n";
+                        break;
+                    case RenpyImmediateTransform renpyImmediateTransform:
+                        output += renpyImmediateTransform.TransformCommand + "\n";
+                        break;
+                    case RenpyGoToLine renpyGoToLine:
+                        output += "goto " + renpyGoToLine.TargetLine + "\n";
+                        break;
+                    case RenpyForkGoToLine renpyForkGoToLine:
+                        output += $"fork goto {renpyForkGoToLine.TargetLine}\n";
+                        break;
+                    //case RenpyDefine define:
+                    //    output += define.
+                    //    break;
+                }
+            }
+
+            output += "\nEND\n";
+
+            Console.WriteLine(output);
         }
 
 
@@ -105,13 +230,15 @@ THE SOFTWARE.
                         Lines.Add(new RenpyScene(scene.Raw));
                         break;
                     case PlayMusic playMusic:
+                        Console.WriteLine("Handling play music - " + playMusic.File);
+                        Console.WriteLine(playMusic.Raw);
+
                         Lines.Add(new RenpyPlay()
                         {
                             play = new RenpyParser.Play()
                             {
                                 Asset = playMusic.File,
-                                Channel = Channel.Music,
-                                fadein = (float)playMusic.FadeIn
+                                Channel = playMusic.Raw.Contains("music") ? Channel.Music : Channel.Sound
                             }
                         });
                         break;
@@ -133,6 +260,10 @@ THE SOFTWARE.
                         break;
                     case RenDisco.Return _:
                         Lines.Add(new RenpyReturn());
+                        break;
+                    case RenDisco.Define define:
+                        Console.WriteLine("Definition on line index: " + commands.IndexOf(command));
+                        CustomDefinitions.Add(new Tuple<int, string>(commands.IndexOf(command), label), new RenpyDefinition(define.Name, define.Value.Replace("\"", "")));
                         break;
                 }
             }

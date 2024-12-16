@@ -78,6 +78,33 @@ THE SOFTWARE.
                 }
             }
 
+            foreach (DokiMod mod in DokiModsManager.Mods)
+            {
+                foreach (string assetBundlePath in Directory.GetFiles(mod.AssetsPath))
+                {
+                    ConsoleUtils.Log($"Loading mod asset bundle -> {assetBundlePath}");
+
+                    string key = Path.GetFileNameWithoutExtension(assetBundlePath);
+
+                    AssetBundle bundle = AssetUtils.LoadAssetBundle(assetBundlePath);
+
+                    AssetUtils.AssetBundles.Add(key, bundle);
+
+                    foreach (var asset in bundle.GetAllAssetNames())
+                    {
+                        //bundle name, asset key, asset path in bundle
+                        Console.WriteLine($"Fake asset -> {key} -> {asset} -> {Path.GetFileNameWithoutExtension(asset)}");
+
+                        // //assetKey -> bundleName -> assetFullPathInBundle
+                        AssetUtils.AssetsToBundles[Path.GetFileNameWithoutExtension(asset)] = new Tuple<string, Tuple<string, bool>>(key, new Tuple<string, bool>(asset, true));
+                    }
+
+                    ConsoleUtils.Log($"Asset bundle loaded -> {key}");
+                }
+            }
+
+            ConsoleUtils.Log("Mod asset bundles loaded.");
+
             PatchUtils.ApplyPatches();
 
             ConsoleUtils.Log("Initialized BootLoader successfully");
