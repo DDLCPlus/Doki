@@ -211,7 +211,7 @@ THE SOFTWARE.
                 switch (command)
                 {
                     case RenDisco.Dialogue dialogue:
-                        Lines.Add(Dialogue(label, dialogue.Text, true, false, dialogue.Character, false));
+                        Lines.Add(Dialogue(label, dialogue.Text, true, false, dialogue.Character, "say", false));
                         break;
                     case RenDisco.Hide hide:
                         Lines.Add(new RenpyHide()
@@ -256,7 +256,7 @@ THE SOFTWARE.
                         Lines.Add(new RenpyPause(pause.Raw, null));
                         break;
                     case Narration narration:
-                        Lines.Add(Dialogue(label, narration.Text, false, false, "mc", false));
+                        Lines.Add(Dialogue(label, narration.Text, false, false, "", "menu-with-caption", false));
                         break;
                     case RenDisco.Return _:
                         Lines.Add(new RenpyReturn());
@@ -276,14 +276,14 @@ THE SOFTWARE.
             return renpyBlock;
         }
 
-        public static Line Dialogue(string label, string what, bool quotes = true, bool skipWait = false, string who = "mc", bool glitch = false)
+        public static Line Dialogue(string label, string what, bool quotes = true, bool skipWait = false, string who = "mc", string command_type = "say", bool glitch = false)
         {
             string text = what;
 
             if (quotes)
                 text = $"\"{text}\"";
 
-            var line = new Dialogue(label, who, text, skipWait, glitch, who == "mc" || who == "player");
+            var line = new Dialogue(label, who, text, skipWait, glitch, who == "mc" || who == "player", command_type);
 
             CustomDialogue.Add(line);
             CustomTextIDs.Add(line.TextID);

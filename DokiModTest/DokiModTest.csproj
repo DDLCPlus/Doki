@@ -9,13 +9,8 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Reference Include="Assembly-CSharp">
-      <HintPath>..\Deps\Assembly-CSharp.dll</HintPath>
-		<Private>false</Private>
-    </Reference>
     <Reference Include="DDLC">
       <HintPath>..\Deps\DDLC.dll</HintPath>
-		<Private>false</Private>
     </Reference>
     <Reference Include="GDX">
       <HintPath>..\Deps\GDX.dll</HintPath>
@@ -23,7 +18,6 @@
     </Reference>
     <Reference Include="SimpleExpressionEngine">
       <HintPath>..\Deps\SimpleExpressionEngine.dll</HintPath>
-		<Private>false</Private>
     </Reference>
     <Reference Include="TextTypewriterEffect">
       <HintPath>..\Deps\TextTypewriterEffect.dll</HintPath>

@@ -15,25 +15,11 @@
   </PropertyGroup>
 
   <ItemGroup>
-	  <Reference Include="MonoMod.Utils">
-		  <HintPath>..\Deps\MonoMod.Utils.dll</HintPath>
-		  <Private>false</Private>
-	  </Reference>
-	  <Reference Include="Mono.Cecil">
-		  <HintPath>..\Deps\Mono.Cecil.dll</HintPath>
-		  <Private>false</Private>
-	  </Reference>
-    <Reference Include="Assembly-CSharp">
-      <HintPath>..\Deps\Assembly-CSharp.dll</HintPath>
-		<Private>false</Private>
-    </Reference>
     <Reference Include="DDLC">
       <HintPath>..\Deps\DDLC.dll</HintPath>
-		<Private>false</Private>
     </Reference>
     <Reference Include="SimpleExpressionEngine">
       <HintPath>..\Deps\SimpleExpressionEngine.dll</HintPath>
-		<Private>false</Private>
     </Reference>
     <Reference Include="Unity.MemoryProfiler">
       <HintPath>..\Deps\Unity.MemoryProfiler.dll</HintPath>
