@@ -124,7 +124,13 @@ namespace Doki.Utils
         {
             Dictionary<string, AssetBundle> m_ActiveAssetBundles = (Dictionary<string, AssetBundle>)__instance.GetPrivateField("m_ActiveAssetBundles");
 
-            AssetUtils.AssetBundles.AddRange(m_ActiveAssetBundles);
+            foreach (var kvp in m_ActiveAssetBundles)
+            {
+                if (!AssetUtils.AssetBundles.ContainsKey(kvp.Key))
+                {
+                    AssetUtils.AssetBundles[kvp.Key] = kvp.Value;
+                }
+            }
 
             foreach (var bundle in AssetUtils.AssetBundles)
             {

@@ -7,9 +7,6 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Reference Include="0Harmony">
-      <HintPath>bin\Debug\net48\0Harmony.dll</HintPath>
-    </Reference>
     <Reference Include="Assembly-CSharp">
       <HintPath>C:\Program Files (x86)\Steam\steamapps\common\Doki Doki Literature Club Plus\Doki Doki Literature Club Plus_Data\Managed\Assembly-CSharp.dll</HintPath>
     </Reference>
@@ -227,6 +224,10 @@
 
   <ItemGroup>
     <Folder Include="RenDisco\" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Lib.Harmony" Version="2.3.3" />
   </ItemGroup>
 
 </Project>

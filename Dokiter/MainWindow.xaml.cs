@@ -72,10 +72,8 @@ namespace Dokiter
             string managedDir = $"{GlobalUtils.DDLCPlusPath}\\Doki Doki Literature Club Plus_Data\\Managed";
 
             File.Delete($"{managedDir}\\UnityEngine.CoreModule.dll");
-            File.Delete($"{managedDir}\\DDLC.dll");
 
             File.Move($"{managedDir}\\UnityEngine.CoreModule.bak", $"{managedDir}\\UnityEngine.CoreModule.dll");
-            File.Move($"{managedDir}\\DDLC.bak", $"{managedDir}\\DDLC.dll");
 
             File.Delete($"{GlobalUtils.DDLCPlusPath}\\Doki.dll");
             File.Delete($"{GlobalUtils.DDLCPlusPath}\\0Harmony.dll");
@@ -150,16 +148,8 @@ namespace Dokiter
 
                         File.Copy($"{managedDir}\\UnityEngine.CoreModule.dll", $"{managedDir}\\UnityEngine.CoreModule.bak", overwrite: true);
 
-                        File.Copy($"{managedDir}\\DDLC.dll", $"{managedDir}\\DDLC.bak", overwrite: true);
-
                         ModuleDefMD unityModule = ModuleDefMD.Load($"{managedDir}\\UnityEngine.CoreModule.dll");
-                        ModuleDefMD ddlcModule = ModuleDefMD.Load($"{managedDir}\\DDLC.dll");
                         ModuleDefMD dokiModule = ModuleDefMD.Load($"{selectedDirectory}\\Doki.dll");
-
-                        //to-do more stuff in DDLC.dll probably? depends on future of the mod loader
-                        var renpyDialogueLine = ddlcModule.Types.First(t => t.Name == "RenpyDialogueLine");
-
-                        renpyDialogueLine.Visibility = dnlib.DotNet.TypeAttributes.Public;
 
                         var bootLoaderType = dokiModule.Types.First(t => t.Name == "BootLoader");
                         var loadMethod = bootLoaderType.Methods.First(m => m.Name == "Load");
@@ -206,13 +196,9 @@ namespace Dokiter
                             MessageBox.Show($"Failed to write module: {ex.Message}", "Write Error", MessageBoxButton.OK, MessageBoxImage.Error);
                         }
 
-                        ddlcModule.Write($"{managedDir}\\DDLC_temp.dll");
-
                         File.Delete($"{managedDir}\\UnityEngine.CoreModule.dll");
-                        File.Delete($"{managedDir}\\DDLC.dll");
 
                         File.Move($"{managedDir}\\UnityEngine.CoreModule_temp.dll", $"{managedDir}\\UnityEngine.CoreModule.dll");
-                        File.Move($"{managedDir}\\DDLC_temp.dll", $"{managedDir}\\DDLC.dll");
 
                         MessageBox.Show("Patched UnityEngine.CoreModule.dll and DDLC.dll! Doki has been installed successfully!", "Success", MessageBoxButton.OK, MessageBoxImage.Information);
 

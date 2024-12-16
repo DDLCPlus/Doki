@@ -19,9 +19,9 @@ namespace Doki.Extensions
         public bool SkipWait { get; set; }
         public bool FromPlayer { get; set; }
 
-        public RenpyDialogueLine Line { get; set; }
+        public Line Line { get; set; }
 
-        public Dialogue(string label, string character, string text, bool skipWait, bool glitch, bool fromPlayer = false)
+        public Dialogue(string label, string character, string text, bool skipWait, bool glitch, bool fromPlayer = false, string command_type = "say")
         {
             TextID = text.GetHashCode();
             Character = character;
@@ -29,9 +29,10 @@ namespace Doki.Extensions
             Glitch = glitch;
             SkipWait = skipWait;
             FromPlayer = fromPlayer;
-            Line = new RenpyDialogueLine(label, TextID, character, "", true, skipWait, false, 1, 0, 0, false, false, 0, new List<Tuple<int, float>>());
 
-            ((DialogueLine)Line.GetPrivateField("m_DialogueLine")).Text = text;
+            Line = Activator.CreateInstance(
+                typeof(DialogueLine).Assembly.GetType("RenpyParser.RenpyDialogueLine"), new object[] { label, TextID, character, "", true, skipWait, false, 1, 0, 0, false, false, 0, new List<Tuple<int, float>>(), command_type }
+            ) as Line;
         }
     }
 }
