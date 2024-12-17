@@ -13,5 +13,5 @@ aaartrtrt - RenDisco (Which we have modified slightly to work with DDLC+'s renpy
 
 # HOW TO SETUP
 Download Dokiter from releases (WIP Mod manager & installer) (or build it idk) -> select DDLC Plus .exe while installing and wait for it to say patches were successful (or not) <br>
-Build DokiModTest -> drag the DokiModTest.dll to Doki\Mods in the game's directory. <br>
-Move the DokiModTest folder in the releases to the game's directory. (Basically the mod's working files, the example script, asset bundle it uses, etc) <br>
+Build DokiModTest -> create a new folder for it "DokiModTest" -> move DokiModTest.dll into that folder and drag "DokiModTest" into Doki\Mods in the game's directory. <br>
+Or find the attached DokiModTest folder in releases & just drag that into your mods folder.
