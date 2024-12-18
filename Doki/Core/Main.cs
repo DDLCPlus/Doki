@@ -76,6 +76,8 @@ THE SOFTWARE.
 
                     ConsoleUtils.Log($"Blocks processed for script");
                 }
+
+                RenpyScriptProcessor.JumpTolabel = contextMod.LabelEntryPoint;
             }
 
             foreach (DokiMod mod in DokiModsManager.Mods)

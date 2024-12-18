@@ -154,6 +154,8 @@ namespace RenDisco {
         /// Gets or sets the list of commands to execute if the condition is true.
         /// </summary>
         public List<RenpyCommand> Content { get; set; } = new List<RenpyCommand>();
+
+        public int IndexOfConditionMet { get; set; }
     }
 
     /// <summary>
@@ -172,6 +174,17 @@ namespace RenDisco {
         /// Gets or sets the list of commands to execute if the condition is true.
         /// </summary>
         public List<RenpyCommand> Content { get; set; } = new List<RenpyCommand>();
+
+        public int IndexOfConditionMet { get; set; }
+    }
+
+    public class ElseCondition : RenpyCommand
+    {
+        public override string Type => "else";
+
+        public List<RenpyCommand> Content { get; set; } = new List<RenpyCommand>();
+
+        public int IndexOfConditionMet { get; set; }
     }
 
     /// <summary>
@@ -200,6 +213,8 @@ namespace RenDisco {
         /// Gets or sets the right hand value to be defined.
         /// </summary>
         public MethodExpression? Definition { get; set; }
+
+        public string Raw { get; set; }
     }
 
     /// <summary>

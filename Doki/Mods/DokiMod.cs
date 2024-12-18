@@ -19,6 +19,7 @@ namespace Doki.Mods
         public virtual string Name => "A Doki Mod";
         public virtual string Author => "A Doki Mod Developer";
         public virtual string Version => "1.0";
+        public virtual string LabelEntryPoint => "startmod";
 
         public List<AssetBundle> ModBundles = new List<AssetBundle>();
 

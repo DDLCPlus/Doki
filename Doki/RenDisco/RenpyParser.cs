@@ -314,7 +314,8 @@ namespace RenDisco {
                 {
                     Name = ExtractAfter(namePart, "define ").Trim(),
                     Value = valuePart,
-                    Definition = ParseMethodExpression(valuePart)
+                    Definition = ParseMethodExpression(valuePart),
+                    Raw = trimmedLine
                 };
                 currentScope.Commands.Add(defineCmd);
                 return true;
@@ -333,7 +334,8 @@ namespace RenDisco {
                 var defineCmd = new Define
                 {
                     Name = ExtractAfter(namePart, "$ ").Trim(),
-                    Value = valuePart
+                    Value = valuePart,
+                    Raw = trimmedLine
                 };
                 currentScope.Commands.Add(defineCmd);
                 return true;
@@ -361,7 +363,8 @@ namespace RenDisco {
             {
                 var ifCondition = new IfCondition
                 {
-                    Condition = ExtractAfter(trimmedLine, "if ").TrimEnd(':')
+                    Condition = ExtractAfter(trimmedLine, "if ").TrimEnd(':'),
+                    IndexOfConditionMet = scopeStack.Count + 1
                 };
                 scopeStack.Peek().Commands.Add(ifCondition);
                 scopeStack.Push(new Scope(ifCondition.Content, ifCondition));
@@ -372,10 +375,22 @@ namespace RenDisco {
             {
                 var elifCondition = new ElifCondition
                 {
-                    Condition = ExtractAfter(trimmedLine, "elif ").TrimEnd(':')
+                    Condition = ExtractAfter(trimmedLine, "elif ").TrimEnd(':'),
+                    IndexOfConditionMet = scopeStack.Count + 1
                 };
                 scopeStack.Peek().Commands.Add(elifCondition);
                 scopeStack.Push(new Scope(elifCondition.Content, elifCondition));
+                return true;
+            }
+
+            if (trimmedLine.StartsWith("else"))
+            {
+                var elseCondition = new ElseCondition()
+                {
+                    IndexOfConditionMet = scopeStack.Count + 1
+                };
+                scopeStack.Peek().Commands.Add(elseCondition);
+                scopeStack.Push(new Scope(elseCondition.Content, elseCondition));
                 return true;
             }
 

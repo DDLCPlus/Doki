@@ -13,6 +13,7 @@ using RenPyParser.Screens.Tear;
 using RenPyParser.Transforms;
 using RenPyParser.VGPrompter.DataHolders;
 using RenPyParser.VGPrompter.Script.Internal;
+using SimpleExpressionEngine;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -33,6 +34,8 @@ namespace Doki.Utils
     {
         private static Harmony HarmonyInstance { get; set; }
 
+        private static int CurrentLine = 0;
+
         public static bool Patched = false;
 
         static PatchUtils()
@@ -42,7 +45,7 @@ namespace Doki.Utils
 
         public static void ApplyPatches()
         {
-			try
+            try
             {
                 HarmonyInstance.Patch(typeof(Blocks).GetMethod("OnAfterDeserialize"), postfix: new HarmonyMethod(typeof(PatchUtils).GetMethod("ScriptExecutionPatch", BindingFlags.Static | BindingFlags.NonPublic)));
                 HarmonyInstance.Patch(typeof(RenpyScript).GetMethod("ResolveLabel"), new HarmonyMethod(typeof(PatchUtils).GetMethod("ResolveLabelPatch", BindingFlags.Static | BindingFlags.NonPublic)), postfix: new HarmonyMethod(typeof(PatchUtils).GetMethod("ResolveLabelPatchAfter", BindingFlags.Static | BindingFlags.NonPublic)));
@@ -93,12 +96,10 @@ namespace Doki.Utils
         {
             int index = (int)__instance.GetPrivateField("lastLine");
 
-            if (RenpyUtils.RenpyUtils.CustomDefinitions.TryGetValue(new Tuple<int, string>(index, __instance.blockName), out RenpyDefinition definition))
-            {
-                Renpy.CurrentContext.SetVariableString(definition.Name, definition.Value.ToString());
+            CurrentLine = index;
 
-                ConsoleUtils.Log($"Ran next patch -> Handled Renpy Variable Assignment to " + definition.Name);
-            }
+            if (RenpyUtils.RenpyUtils.CustomDefinitions.TryGetValue(new Tuple<int, string>(index, __instance.blockName), out RenpyDefinition definition))
+                Renpy.CurrentContext.SetVariableString(definition.Name, definition.Value.ToString());
         }
 
         private static bool ValidateLoadPatch(string path, out string bundleName, bool mustExist, bool __result)
@@ -187,8 +188,6 @@ namespace Doki.Utils
         {
             if (!AssetUtils.AssetBundles.ContainsKey(__instance.name))
                 return true;
-            //if (AssetUtils.GetBundleDetailsByAssetKey(Path.GetFileNameWithoutExtension(name)) == default)
-            //    return true;
 
             if (name != "select" && name != "hover" && name != "frame")
                 Console.WriteLine($"Trying to force load -> {name} as type: {type.ToString()}");
@@ -264,7 +263,7 @@ namespace Doki.Utils
                     block.Value.Contents.Clear();
                     block.Value.Contents.AddRange(new List<Line>()
                     {
-                        new RenpyGoTo(RenpyScriptProcessor.BlocksDict.First().Key, false, $"jump {RenpyScriptProcessor.BlocksDict.First().Key}")
+                        new RenpyGoTo(RenpyScriptProcessor.JumpTolabel, false, $"jump {RenpyScriptProcessor.JumpTolabel}")
                     });
                 }
             }
