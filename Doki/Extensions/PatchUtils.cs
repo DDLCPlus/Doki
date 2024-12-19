@@ -5,7 +5,9 @@ using RenpyParser;
 using RenPyParser.AssetManagement;
 using RenPyParser.Transforms;
 using RenPyParser.VGPrompter.DataHolders;
+using SimpleExpressionEngine;
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -37,6 +39,7 @@ namespace Doki.Extensions
                 HarmonyInstance.Patch(typeof(ActiveAssetBundles).GetMethod("LoadPermanentBundles"), postfix: new HarmonyMethod(typeof(PatchUtils).GetMethod("LoadPermanentBundlesPatch", BindingFlags.Static | BindingFlags.NonPublic)));
                 HarmonyInstance.Patch(typeof(RenpyLoadImage).GetMethod("Immediate", BindingFlags.Static | BindingFlags.Public), prefix: new HarmonyMethod(typeof(PatchUtils).GetMethod("ImmediatePatch", BindingFlags.Static | BindingFlags.NonPublic)));
                 HarmonyInstance.Patch(typeof(RenpyCallstackEntry).GetMethod("Next"), postfix: new HarmonyMethod(typeof(PatchUtils).GetMethod("NextPatch", BindingFlags.Static | BindingFlags.NonPublic)));
+                HarmonyInstance.Patch(typeof(MusicSource).GetMethod("InitAudioSource", BindingFlags.Instance | BindingFlags.NonPublic), prefix: new HarmonyMethod(typeof(PatchUtils).GetMethod("InitAudioSourcePatch", BindingFlags.Static | BindingFlags.NonPublic))); //If I could patch IResources.Load's implementation and have it trigger with 0Harmony, I would. I'm sorry.
 
                 foreach (var mod in DokiModsManager.Mods)
                 {
@@ -79,22 +82,6 @@ namespace Doki.Extensions
             CurrentLine = (int)__instance.GetPrivateField("lastLine");
             if (RenpyUtils.RenpyUtils.CustomDefinitions.TryGetValue(new Tuple<int, string>(CurrentLine, __instance.blockName), out RenpyDefinition definition))
                 Renpy.CurrentContext.SetVariableString(definition.Name, definition.Value.ToString());
-        }
-
-        private static bool ValidateLoadPatch(string path, out string bundleName, bool mustExist, bool __result)
-        {
-            Tuple<string, Tuple<string, bool>> result = AssetUtils.GetBundleDetailsByAssetKey(path);
-
-            if (result == default)
-            {
-                bundleName = "";
-                return true;
-            }
-
-            bundleName = result.Item1;
-            ConsoleUtils.Debug("Doki", $"Validating load for {path} - which compared was: {result.Item1}");
-
-            return false;
         }
 
         private static void LoadPermanentBundlesPatch(ref ActiveAssetBundles __instance)
@@ -272,6 +259,119 @@ namespace Doki.Extensions
 
             if (label.Contains("bg"))
                 RenpyUtils.RenpyUtils.DumpBlock(tuple.Item1);
+        }
+
+        private static bool InitAudioSourcePatch(MusicSource __instance, RenpyAudioData audioData, ref int index, bool looped, int loopCount, IContext context, string setFlag, bool immediate = true, int loopNumber = 0)
+        {
+            //name = t2
+            //simple asset name = 2
+            // load from simple asset name but check from name
+
+            if (!RenpyUtils.RenpyUtils.Sounds.Contains(audioData.name))
+                return true; //It is a whole nightmare dealing with official shit
+
+            var musicSources = AccessTools.Field(__instance.GetType(), "musicSources").GetValue(__instance) as AudioSource[];
+            var musicDataArray = AccessTools.Field(__instance.GetType(), "musicData").GetValue(__instance);
+            var sourceCount = (int)AccessTools.Field(__instance.GetType(), "sourceCount").GetValue(__instance);
+            var queueIndexField = AccessTools.Field(__instance.GetType(), "queueIndex");
+
+            if (index >= musicSources.Length)
+                index = 0;
+
+            AudioSource audioSource = musicSources[index];
+
+            object musicDataInstance = ((Array)musicDataArray).GetValue(index);
+
+            int queueIndex = (index + 1) % sourceCount;
+            queueIndexField.SetValue(__instance, queueIndex);
+
+            object nextMusicData = ((Array)musicDataArray).GetValue(queueIndex);
+
+            AssetBundle foundBundle = AssetUtils.GetPreciseAudioRelatedBundle(audioData.simpleAssetName);
+
+            if (foundBundle == null)
+                return true;
+
+            AudioClip audioClip = foundBundle.ForceLoadAsset<AudioClip>(audioData.simpleAssetName);
+            audioSource.clip = audioClip;
+
+            if (looped)
+            {
+                string loop = audioData.GetLoop(context);
+                audioSource.time = string.IsNullOrEmpty(loop) ? 0f : float.Parse(loop);
+            }
+            else
+            {
+                string from = audioData.GetFrom(context);
+                string to = audioData.GetTo(context);
+                string loop = audioData.GetLoop(context);
+
+                float startTime = string.IsNullOrEmpty(from) ? 0f : float.Parse(from);
+                float endTime = string.IsNullOrEmpty(to) ? audioClip.length : float.Parse(to);
+                float loopPoint = string.IsNullOrEmpty(loop) ? 0f : float.Parse(loop);
+
+                while (startTime >= endTime - 0.05f && startTime >= 0.05f)
+                    startTime -= endTime - loopPoint;
+
+                startTime = Math.Max(0f, startTime);
+                audioSource.time = startTime;
+            }
+
+            var audioDataField = musicDataInstance.GetType().GetField("AudioData", BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
+            var loopNumberField = musicDataInstance.GetType().GetField("LoopNumber", BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
+
+            audioDataField?.SetValue(musicDataInstance, audioData);
+            loopNumberField?.SetValue(musicDataInstance, loopNumber);
+
+            if (immediate)
+            {
+                var config = AudioSettings.GetConfiguration();
+                var startTimeField = musicDataInstance.GetType().GetField("StartTime", BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
+
+                double startTime = AudioSettings.dspTime + (double)config.dspBufferSize / config.sampleRate;
+                startTimeField?.SetValue(musicDataInstance, startTime);
+                audioSource.PlayScheduled(startTime);
+            }
+            else
+            {
+                var startTimeField = musicDataInstance.GetType().GetField("NextStartTime", BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
+                double nextStartTime = (double)startTimeField?.GetValue(musicDataInstance);
+
+                startTimeField?.SetValue(musicDataInstance, nextStartTime);
+                audioSource.PlayScheduled(nextStartTime);
+
+                if (!string.IsNullOrWhiteSpace(setFlag))
+                    __instance.StartCoroutine((IEnumerator)AccessTools.Method(__instance.GetType(), "FlagCoroutine").Invoke(__instance, new object[] { nextStartTime, setFlag }));
+            }
+
+            var calculateNextStartTimeMethod = AccessTools.Method(typeof(MusicSource), "CalculateNextStartTime");
+            double calculatedNextStartTime = (double)calculateNextStartTimeMethod.Invoke(null, new object[] { musicDataInstance, audioSource, context });
+
+            var setScheduledEndTimeMethod = AccessTools.Method(typeof(AudioSource), "SetScheduledEndTime");
+            setScheduledEndTimeMethod.Invoke(audioSource, new object[] { calculatedNextStartTime });
+
+            var currentEndTimeField = AccessTools.Field(__instance.GetType(), "m_CurrentEndTime");
+            currentEndTimeField.SetValue(__instance, calculatedNextStartTime);
+
+            var nextStartTimeField = nextMusicData.GetType().GetField("NextStartTime", BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
+            nextStartTimeField?.SetValue(nextMusicData, calculatedNextStartTime);
+
+            if (audioData.Looping)
+            {
+                var queuedAudioField = AccessTools.Field(__instance.GetType(), "queuedAudio");
+                Queue<MusicSource.QueuedMusicData> queuedAudioQueue = (Queue<MusicSource.QueuedMusicData>)queuedAudioField.GetValue(__instance);
+
+                queuedAudioQueue.Enqueue(new MusicSource.QueuedMusicData
+                {
+                    Looped = true,
+                    LoopNumber = loopNumber + 1,
+                    LoopsRemaining = loopCount,
+                    AudioData = audioData,
+                    SetFlag = setFlag
+                });
+            }
+
+            return false;
         }
 
         private static bool SayPatch(string tag, string character, DialogueLine dialogueLine)

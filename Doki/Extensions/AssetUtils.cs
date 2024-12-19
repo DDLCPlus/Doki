@@ -2,6 +2,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Reflection;
 using UnityEngine;
 
@@ -55,17 +56,45 @@ namespace Doki.Extensions
             else return default;
         }
 
-        public static UnityEngine.Object LoadFromUnknownBundle(string key, Type type)
+        public static UnityEngine.Object LoadFromUnknownBundle(string key, Type type, bool secondMethod = false)
         {
             Tuple<string, Tuple<string, bool>> bundleDetails = GetBundleDetailsByAssetKey(key);
-
-            //if (bundleDetails == null)
-            //    return new UnityEngine.Object();
-
             AssetBundle foundBundle = AssetUtils.AssetBundles[bundleDetails.Item1];
 
-            return foundBundle.LoadAsset(key, type);
-            //return bundleDetails.Item2 ? foundBundle.ForceLoadAsset(key, type) : foundBundle.LoadAsset(key, type);
+            return secondMethod ? foundBundle.ForceLoadAsset(key, type) : foundBundle.LoadAsset(key, type);
+        }
+
+        public static AssetBundle GetPreciseAudioRelatedBundle(string assetKey)
+        {
+            if (assetKey == "7g2")
+                return AssetUtils.AssetBundles["bgm-coarse00"];
+
+            string[] baseAudioBundles = {
+                "bgm-coarse",
+                "bgm-coarse00",
+                "bgm-ddlcplus-coarse",
+                "sfx-coarse"
+            };
+
+            // If assetKey is in baseAudioBundles, return it directly
+            foreach(var baseAudioBundle in baseAudioBundles)
+            {
+                AssetBundle baseBundle = AssetUtils.AssetBundles[baseAudioBundle];
+
+                if (baseBundle.GetAllAssetNames().Any(assetName => Path.GetFileNameWithoutExtension(assetName) == assetKey))
+                    return baseBundle;
+            }
+
+            foreach (var bundleEntry in AssetUtils.AssetBundles)
+            {
+                string assetBundleName = bundleEntry.Key;
+                AssetBundle bundle = bundleEntry.Value;
+
+                if (bundle.GetAllAssetNames().Any(assetName => Path.GetFileNameWithoutExtension(assetName) == assetKey))
+                    return bundle;
+            }
+
+            return null;
         }
 
         public static GameObject FixLoad(string key)

@@ -48,7 +48,7 @@ THE SOFTWARE.
         public static List<int> CustomTextIDs = [];
         public static Dictionary<Tuple<int, string>, RenpyDefinition> CustomDefinitions = [];
         public static Dictionary<object, Line> Jumps = [];
-        public static Dictionary<string, string> Sounds = [];
+        public static List<string> Sounds = new List<string>();
 
         public static Dialogue RetrieveLineFromText(string text)
         {
@@ -303,7 +303,6 @@ THE SOFTWARE.
             if (playArguments.Length > 3) //Handle fadein
                 retPlay.play.fadein = (float)playMusic.FadeIn;
 
-
             if (playArguments[1] == "musicpoem")
                 retPlay.play.Channel = Channel.MusicPoem;
             else if (playArguments[1] == "sound")
@@ -316,6 +315,8 @@ THE SOFTWARE.
 
         private static RenpyShow ParseShowSequence(RenDisco.Show show)
         {
+            //Yeah Yeah I get it, parse the shit when the parser has already done it..
+
             string[] showArguments = show.Raw.Split(' ');
 
             RenpyShow retShow = new("show ");
@@ -324,8 +325,10 @@ THE SOFTWARE.
             retShow.show.ImageName = showArguments[1];
             retShow.show.Variant = showArguments.Length > 2 ? showArguments[2] : "";
             retShow.show.TransformName = "";
-
             retShow.show.TransformCallParameters = [];
+            retShow.show.Layer = "master";
+            retShow.show.As = "";
+            retShow.show.HasZOrder = false;
 
             for (int i = 0; i < showArguments.Length; i++)
             {
@@ -339,14 +342,20 @@ THE SOFTWARE.
                         retShow.show.HasZOrder = true;
                     }
                 }
-                else if (arg.StartsWith("at"))
+                else if (arg == "at")
                 {
-                    string position = arg.Substring("at".Length).Trim();
-
-                    if (!string.IsNullOrEmpty(position))
-                    {
-                        retShow.show.TransformName = position;
-                    }
+                    if (i + 1 < showArguments.Length)
+                        retShow.show.TransformName = showArguments[++i];
+                }
+                else if (arg == "onlayer")
+                {
+                    if (i + 1 < showArguments.Length)
+                        retShow.show.Layer = showArguments[++i];
+                }
+                else if (arg == "as")
+                {
+                    if (i + 1 < showArguments.Length)
+                        retShow.show.As = showArguments[++i];
                 }
             }
 
@@ -392,6 +401,8 @@ THE SOFTWARE.
                         break;
                     case PlayMusic playMusic:
                         Lines.Add(ParsePlaySequence(playMusic));
+
+                        RenpyUtils.Sounds.Add(playMusic.File);
                         break;
                     case StopMusic stopMusic:
                         Lines.Add(ParseStopSequence(stopMusic));
