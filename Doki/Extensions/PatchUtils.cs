@@ -239,7 +239,7 @@ namespace Doki.Extensions
         private static bool DebugPatch(ref LogType logType, ref object message)
         {
             ConsoleUtils.ColourWrite([
-                new ConsoleUtils.ColouredText($"{logType}: {message}", ConsoleColor.Yellow)
+                new ConsoleUtils.ColouredText($"{logType}: {message}\n", ConsoleColor.Yellow)
             ]);
             return false /*true*/;
         }

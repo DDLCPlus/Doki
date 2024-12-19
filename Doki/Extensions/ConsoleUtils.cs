@@ -17,6 +17,9 @@ namespace Doki.Extensions
 
         public static void ShowConsole(string title = null)
         {
+            if (BootLoader.NoConsole)
+                return;
+
             AllocConsole();
 
             IntPtr stdHandle = GetStdHandle(STD_OUTPUT_HANDLE);
@@ -74,13 +77,14 @@ namespace Doki.Extensions
 
         public static void ColourWrite(ColouredText[] text)
         {
+            if (BootLoader.NoConsole)
+                return;
+
             foreach (var segment in text)
             {
                 Console.ForegroundColor = segment.Color;
                 Console.Write(segment.Text);
             }
-            if (Console.ForegroundColor != ConsoleColor.White)
-                Console.ForegroundColor = ConsoleColor.White;
         }
 
         public class ColouredText(string text, ConsoleColor color)

@@ -1,4 +1,5 @@
-﻿using HarmonyLib;
+﻿using Doki.Extensions;
+using HarmonyLib;
 using RenDisco;
 using RenpyParser;
 using RenPyParser;
@@ -186,7 +187,7 @@ THE SOFTWARE.
 
             output += "\nEND\n";
 
-            Console.WriteLine(output);
+            ConsoleUtils.Log("Doki", output);
         }
 
         private static List<Line> HandleCondition(IfCondition ifCondition = null, ElifCondition elIfCondition = null)
@@ -357,7 +358,7 @@ THE SOFTWARE.
 
         public static RenpyBlock Translate(string label, List<RenpyCommand> commandsPassed)
         {
-            Console.WriteLine("Translating label..");
+            ConsoleUtils.Log("Doki", "Translating label..");
 
             List<Line> Lines = [];
             List<RenpyCommand> commands = ((Label)commandsPassed.First()).Commands;

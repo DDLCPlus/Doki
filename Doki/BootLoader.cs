@@ -8,6 +8,8 @@ namespace Doki
     {
         public static bool DontLoad = false;
 
+        public static bool NoConsole = false;
+
         public static void Load()
         {
             if (!DontLoad)

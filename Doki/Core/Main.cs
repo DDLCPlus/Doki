@@ -71,6 +71,9 @@ THE SOFTWARE.
             {
                 foreach (string assetBundlePath in Directory.GetFiles(mod.AssetsPath))
                 {
+                    if (Path.GetExtension(assetBundlePath) != "" && !Path.GetExtension(assetBundlePath).ToLower().Contains("assetbundle"))
+                        continue;
+
                     ConsoleUtils.Log("Doki", $"Loading mod asset bundle -> {assetBundlePath}");
 
                     string key = Path.GetFileNameWithoutExtension(assetBundlePath);
