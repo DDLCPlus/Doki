@@ -1,14 +1,6 @@
-﻿using Doki.Utils;
-using HarmonyLib;
-using RenDisco;
-using RenpyParser;
-using RenPyParser.VGPrompter.DataHolders;
-using System;
+﻿using HarmonyLib;
 using System.Collections.Generic;
-using System.Linq;
 using System.Reflection;
-using System.Text;
-using System.Threading.Tasks;
 using UnityEngine;
 
 namespace Doki.Mods
@@ -21,7 +13,7 @@ namespace Doki.Mods
         public virtual string Version => "1.0";
         public virtual string LabelEntryPoint => "startmod";
 
-        public List<AssetBundle> ModBundles = new List<AssetBundle>();
+        public List<AssetBundle> ModBundles = [];
 
         public virtual Dictionary<MethodBase, HarmonyMethod> Prefixes { get; set; }
         public virtual Dictionary<MethodBase, HarmonyMethod> Postfixes { get; set; }
@@ -31,14 +23,7 @@ namespace Doki.Mods
 
         public bool ModifiesContext { get; set; }
 
-        public virtual void OnLoad()
-        {
-
-        }
-
-        public virtual void OnNextLine()
-        {
-
-        }
+        public virtual void OnLoad() { }
+        public virtual void OnNextLine() { }
     }
 }

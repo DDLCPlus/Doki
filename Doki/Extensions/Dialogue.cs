@@ -1,9 +1,6 @@
-﻿using System;
+﻿using RenpyParser;
+using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using RenpyParser;
 
 namespace Doki.Extensions
 {
@@ -30,8 +27,8 @@ namespace Doki.Extensions
             SkipWait = skipWait;
             FromPlayer = fromPlayer;
 
-            Line = Activator.CreateInstance(
-                typeof(DialogueLine).Assembly.GetType("RenpyParser.RenpyDialogueLine"), new object[] { label, TextID, character, "", true, skipWait, false, 1, 0, 0, false, false, 0, new List<Tuple<int, float>>(), command_type }
+            Line = Activator.CreateInstance(typeof(DialogueLine).Assembly.GetType("RenpyParser.RenpyDialogueLine"),
+                [label, TextID, character, "", true, skipWait, false, 1, 0, 0, false, false, 0, new List<Tuple<int, float>>(), command_type]
             ) as Line;
         }
     }

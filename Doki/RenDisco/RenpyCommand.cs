@@ -1,6 +1,7 @@
 ﻿using System.Collections.Generic;
 
-namespace RenDisco {
+namespace RenDisco
+{
     /// <summary>
     /// Base abstract class for all types of Renpy commands.
     /// </summary>
@@ -18,21 +19,21 @@ namespace RenDisco {
     public class Label : RenpyCommand
     {
         public override string Type => "label";
-        
+
         /// <summary>
         /// Gets or sets the name of the label.
         /// </summary>
         public string Name { get; set; }
-        
+
         /// <summary>
         /// Gets or sets the indentation level of the label.
         /// </summary>
         public int Indentation { get; set; }
-        
+
         /// <summary>
         /// Gets or sets the list of commands under this label.
         /// </summary>
-        public List<RenpyCommand> Commands { get; set; } = new List<RenpyCommand>();
+        public List<RenpyCommand> Commands { get; set; } = [];
 
         public string Raw { get; set; }
     }
@@ -43,12 +44,12 @@ namespace RenDisco {
     public class Scene : RenpyCommand
     {
         public override string Type => "scene";
-        
+
         /// <summary>
         /// Gets or sets the image to display for the scene.
         /// </summary>
         public string Image { get; set; }
-        
+
         /// <summary>
         /// Gets or sets the transition effect for the scene.
         /// </summary>
@@ -69,12 +70,12 @@ namespace RenDisco {
     public class Narrative : RenpyCommand
     {
         public override string Type => "narrative";
-        
+
         /// <summary>
         /// Gets or sets the character speaking the dialogue.
         /// </summary>
         public string Character { get; set; }
-        
+
         /// <summary>
         /// Gets or sets the dialogue text.
         /// </summary>
@@ -83,7 +84,7 @@ namespace RenDisco {
         /// <summary>
         /// Gets or sets the Saving Throw.
         /// </summary>
-        public MethodExpression? SavingThrow { get; set;}
+        public MethodExpression? SavingThrow { get; set; }
     }
 
     /// <summary>
@@ -100,11 +101,11 @@ namespace RenDisco {
     public class Narration : Narrative
     {
         public override string Type => "show_text";
-        
+
         /// <summary>
         /// Gets or sets the character speaking the dialogue.
         /// </summary>
-        public string Character => "Narrator";
+        public new string Character => "Narrator";
     }
 
     /// <summary>
@@ -113,11 +114,11 @@ namespace RenDisco {
     public class Menu : RenpyCommand
     {
         public override string Type => "menu";
-        
+
         /// <summary>
         /// Gets or sets the list of choices in the menu.
         /// </summary>
-        public List<MenuChoice> Choices { get; set; } = new List<MenuChoice>();
+        public List<MenuChoice> Choices { get; set; } = [];
     }
 
     /// <summary>
@@ -126,16 +127,16 @@ namespace RenDisco {
     public class MenuChoice : RenpyCommand
     {
         public override string Type => "menu_choice";
-        
+
         /// <summary>
         /// Gets or sets the text for the menu choice.
         /// </summary>
         public string OptionText { get; set; }
-        
+
         /// <summary>
         /// Gets or sets the list of commands to execute if this choice is selected.
         /// </summary>
-        public List<RenpyCommand> Response { get; set; } = new List<RenpyCommand>();
+        public List<RenpyCommand> Response { get; set; } = [];
     }
 
     /// <summary>
@@ -144,16 +145,16 @@ namespace RenDisco {
     public class IfCondition : RenpyCommand
     {
         public override string Type => "if";
-        
+
         /// <summary>
         /// Gets or sets the condition to evaluate.
         /// </summary>
         public string Condition { get; set; }
-        
+
         /// <summary>
         /// Gets or sets the list of commands to execute if the condition is true.
         /// </summary>
-        public List<RenpyCommand> Content { get; set; } = new List<RenpyCommand>();
+        public List<RenpyCommand> Content { get; set; } = [];
 
         public int IndexOfConditionMet { get; set; }
     }
@@ -164,16 +165,16 @@ namespace RenDisco {
     public class ElifCondition : RenpyCommand
     {
         public override string Type => "elif";
-        
+
         /// <summary>
         /// Gets or sets the condition to evaluate.
         /// </summary>
         public string Condition { get; set; }
-        
+
         /// <summary>
         /// Gets or sets the list of commands to execute if the condition is true.
         /// </summary>
-        public List<RenpyCommand> Content { get; set; } = new List<RenpyCommand>();
+        public List<RenpyCommand> Content { get; set; } = [];
 
         public int IndexOfConditionMet { get; set; }
     }
@@ -182,7 +183,7 @@ namespace RenDisco {
     {
         public override string Type => "else";
 
-        public List<RenpyCommand> Content { get; set; } = new List<RenpyCommand>();
+        public List<RenpyCommand> Content { get; set; } = [];
 
         public int IndexOfConditionMet { get; set; }
     }
@@ -193,17 +194,17 @@ namespace RenDisco {
     public class Define : RenpyCommand
     {
         public override string Type => "define";
-        
+
         /// <summary>
         /// Gets or sets the ID of the definition.
         /// </summary>
         public string Id { get; set; }
-        
+
         /// <summary>
         /// Gets or sets the name or key of the definition.
         /// </summary>
         public string Name { get; set; }
-        
+
         /// <summary>
         /// Gets or sets the value to be defined.
         /// </summary>
@@ -223,12 +224,12 @@ namespace RenDisco {
     public class PlayMusic : RenpyCommand
     {
         public override string Type => "play_music";
-        
+
         /// <summary>
         /// Gets or sets the file path or identifier for the music file to play.
         /// </summary>
         public string File { get; set; }
-        
+
         /// <summary>
         /// Gets or sets the duration of the fade-in effect.
         /// </summary>
@@ -243,7 +244,7 @@ namespace RenDisco {
     public class StopMusic : RenpyCommand
     {
         public override string Type => "stop_music";
-        
+
         /// <summary>
         /// Gets or sets the duration of the fade-out effect.
         /// </summary>
@@ -258,17 +259,17 @@ namespace RenDisco {
     public class Show : RenpyCommand
     {
         public override string Type => "show";
-        
+
         /// <summary>
         /// Gets or sets the image to be shown.
         /// </summary>
         public string Image { get; set; }
-        
+
         /// <summary>
         /// Gets or sets the position of the image on the screen.
         /// </summary>
         public string Position { get; set; }
-        
+
         /// <summary>
         /// Gets or sets the transition effect for showing the image.
         /// </summary>
@@ -287,12 +288,12 @@ namespace RenDisco {
     public class Hide : RenpyCommand
     {
         public override string Type => "hide";
-        
+
         /// <summary>
         /// Gets or sets the image to be hidden.
         /// </summary>
         public string Image { get; set; }
-        
+
         /// <summary>
         /// Gets or sets the transition effect for hiding the image.
         /// </summary>
@@ -311,7 +312,7 @@ namespace RenDisco {
     public class Pause : RenpyCommand
     {
         public override string Type => "pause";
-        
+
         /// <summary>
         /// Gets or sets the duration of the pause in seconds.
         /// </summary>
@@ -326,7 +327,7 @@ namespace RenDisco {
     public class Jump : RenpyCommand
     {
         public override string Type => "jump";
-        
+
         /// <summary>
         /// Gets or sets the label name to jump to.
         /// </summary>

@@ -1,7 +1,5 @@
-﻿using Doki.Extensions;
-using System;
-using System.IO;
-using System.Runtime.InteropServices;
+﻿using Doki.Core;
+using Doki.Extensions;
 using UnityEngine;
 
 namespace Doki
@@ -15,12 +13,10 @@ namespace Doki
             if (!DontLoad)
             {
                 ConsoleUtils.ShowConsole("Doki - A DDLC+ Project");
-                ConsoleUtils.Log("Created GameObject to handle BootLoader.. initializing..");
+                ConsoleUtils.Log("Doki", "Created GameObject to handle BootLoader.. initializing..");
 
                 var obj = new GameObject();
-
                 obj.AddComponent<Main>();
-
                 UnityEngine.Object.DontDestroyOnLoad(obj);
             }
         }

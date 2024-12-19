@@ -4,20 +4,18 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Reflection;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace Doki.Mods
 {
     public static class DokiModsManager
     {
-        public static List<DokiMod> Mods = new List<DokiMod>();
+        public static List<DokiMod> Mods = [];
 
         public static int ActiveScriptModifierIndex = 0;
 
         public static void LoadMods()
         {
-            ConsoleUtils.Log("Loading Doki Mods..");
+            ConsoleUtils.Log("DokiModsManager", "Loading Doki Mods..");
 
             if (Directory.GetDirectories("Doki\\Mods").Length == 0)
             {
@@ -33,14 +31,14 @@ namespace Doki.Mods
                     {
                         try
                         {
-                            ConsoleUtils.Log($"Trying to load Doki Mod: {Path.GetFileNameWithoutExtension(file)}");
+                            ConsoleUtils.Log("DokiModsManager", $"Trying to load Doki Mod: {Path.GetFileNameWithoutExtension(file)}");
 
                             var assembly = Assembly.LoadFrom(Path.GetFullPath(file));
                             var types = assembly.GetTypes().Where(x => x.IsSubclassOf(typeof(DokiMod)));
 
                             if (types.Count() == 0)
                             {
-                                ConsoleUtils.Log($"An error occurred while trying to load Doki Mod: {Path.GetFileNameWithoutExtension(file)} -> There was no DokiMod subclass.");
+                                ConsoleUtils.Error("DokiModsManager", $"An error occurred while trying to load Doki Mod: {Path.GetFileNameWithoutExtension(file)} -> There was no DokiMod subclass.");
                                 continue;
                             }
 
@@ -56,22 +54,21 @@ namespace Doki.Mods
                                 mod.AssetsPath = $"{directory}\\Assets";
 
                             mod.OnLoad();
-
                             Mods.Add(mod);
 
-                            ConsoleUtils.Log($"Loaded {mod.Name} by {mod.Author} (version: {mod.Version}) successfully.");
+                            ConsoleUtils.Log("DokiModsManager", $"Loaded {mod.Name} by {mod.Author} (version: {mod.Version}) successfully.");
                         }
                         catch (Exception e)
                         {
                             Console.WriteLine(e.ToString());
 
-                            ConsoleUtils.Log($"An error occurred while trying to load Doki Mod: {Path.GetFileNameWithoutExtension(file)}");
+                            ConsoleUtils.Error("DokiModsManager", $"An error occurred while trying to load Doki Mod: {Path.GetFileNameWithoutExtension(file)}");
                         }
                     }
                 }
             }
 
-            ConsoleUtils.Log("Loaded Doki Mods.");
+            ConsoleUtils.Log("DokiModsManager", "Loaded Doki Mods.");
         }
     }
 }

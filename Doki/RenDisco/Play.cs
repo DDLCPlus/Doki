@@ -1,9 +1,8 @@
 using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text.RegularExpressions;
 
-namespace RenDisco {
+namespace RenDisco
+{
     public class Play
     {
         // The current parent
@@ -20,11 +19,13 @@ namespace RenDisco {
         public List<RenpyCommand> Commands;
         public int ProgramCounter { get; set; }
         public bool ReturnToParent { get; set; }
-        public Play? CurrentChild {
+        public Play? CurrentChild
+        {
             get => this._child;
             set => this._child = value;
         }
-        public bool WaitingForInput  {
+        public bool WaitingForInput
+        {
             get => this._waitingForInput || (this._child?.WaitingForInput ?? false);
             set => this._waitingForInput = value;
         }
@@ -65,14 +66,17 @@ namespace RenDisco {
                 if (_child.ProgramCounter >= _child.Commands.Count)
                 {
                     // If our child is done, and we don't need to return to Parent, get rid of it.
-                    if (!_jumped && !ReturnToParent) {
+                    if (!_jumped && !ReturnToParent)
+                    {
                         _child = null;
                         this.ProgramCounter++;
                     }
                     // If we've jumped, we end our execution once our Child is done.
                     else if (_jumped)
-                        this.ProgramCounter = this.Commands.Count + 1; 
-                } else {
+                        this.ProgramCounter = this.Commands.Count + 1;
+                }
+                else
+                {
                     _child.Step(stepContext: stepContext);
                     return true;
                 }
@@ -86,7 +90,9 @@ namespace RenDisco {
                 {
                     _parent.Step(true, stepContext: stepContext);
                     return true;
-                } else {
+                }
+                else
+                {
                     return false;
                 }
             }
@@ -116,17 +122,23 @@ namespace RenDisco {
                     ExecuteLabel(label, stepContext);
                     break;
                 case Dialogue dialogue:
-                    if (stepContext != null) {
+                    if (stepContext != null)
+                    {
                         this.WaitingForInput = false;
-                    } else if (!WaitingForInput) {
+                    }
+                    else if (!WaitingForInput)
+                    {
                         _runtime.ShowDialogue(dialogue.Character, dialogue.Text);
                         this.WaitingForInput = true;
                     }
                     break;
                 case Narration narration:
-                    if (stepContext != null) {
+                    if (stepContext != null)
+                    {
                         this.WaitingForInput = false;
-                    } else if (!WaitingForInput) {
+                    }
+                    else if (!WaitingForInput)
+                    {
                         _runtime.ShowNarration(narration.Text);
                         this.WaitingForInput = true;
                     }
@@ -203,7 +215,7 @@ namespace RenDisco {
                     WaitingForInput = true;
                 }
             }
-            catch(Exception exception)
+            catch (Exception exception)
             {
                 if (exception is ArgumentOutOfRangeException)
                 {
@@ -248,7 +260,8 @@ namespace RenDisco {
         private void ExecuteJump(string labelName, StepContext? stepContext = null)
         {
             this._child = FindLabel(labelName);
-            if (this._child != null) {
+            if (this._child != null)
+            {
                 this._jumped = true;
                 this._child.CurrentChild = null;
                 this._child?.Step(returnToParent: true, stepContext: stepContext);

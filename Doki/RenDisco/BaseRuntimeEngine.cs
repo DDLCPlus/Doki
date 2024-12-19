@@ -2,7 +2,8 @@ using System;
 using System.Collections.Generic;
 using System.Text.RegularExpressions;
 
-namespace RenDisco {
+namespace RenDisco
+{
     public class BaseRuntimeEngine : IRuntimeEngine
     {
         private Dictionary<string, object> _variables = new Dictionary<string, object>();
@@ -144,7 +145,8 @@ namespace RenDisco {
 
                 foreach (ParamPairExpression paramPair in define.Definition.ParamList.Params)
                 {
-                    switch (paramPair.ParamName) {
+                    switch (paramPair.ParamName)
+                    {
                         case "name":
                         case "color":
                         case "portrait":
@@ -157,7 +159,8 @@ namespace RenDisco {
                     }
                 }
 
-                if (characterSettings.ContainsKey("name")) {
+                if (characterSettings.ContainsKey("name"))
+                {
                     DefineCharacter(
                         define.Name,
                         characterSettings

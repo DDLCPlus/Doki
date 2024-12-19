@@ -1,6 +1,4 @@
-using System;
 using System.Collections.Generic;
-using System.Text.RegularExpressions;
 
 namespace RenDisco
 {
@@ -9,7 +7,7 @@ namespace RenDisco
         public abstract string Type { get; }
     }
 
-    public class IndentationExpression: Expression
+    public class IndentationExpression : Expression
     {
         public override string Type => "keyword";
 
@@ -56,7 +54,7 @@ namespace RenDisco
     {
         public override string Type => "param_list";
 
-        public IList<ParamPairExpression> Params { get; set; } = new List<ParamPairExpression>();
+        public IList<ParamPairExpression> Params { get; set; } = [];
     }
 
     public class MethodExpression : Expression

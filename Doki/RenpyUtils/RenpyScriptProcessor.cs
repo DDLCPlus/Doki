@@ -1,27 +1,22 @@
-﻿using Doki.Mods;
+﻿using Doki.Extensions;
 using RenDisco;
 using RenpyParser;
 using RenPyParser.VGPrompter.DataHolders;
 using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace Doki.RenpyUtils
 {
     public static class RenpyScriptProcessor
     {
         public static Dictionary<string, Tuple<BlockEntryPoint, RenpyBlock>> BlocksDict { get; set; } //Block label -> Commands translated
-
         public static string JumpTolabel { get; set; }
-
         public static RenDisco.RenpyParser Parser { get; set; }
 
         static RenpyScriptProcessor()
         {
-            BlocksDict = new Dictionary<string, Tuple<BlockEntryPoint, RenpyBlock>>();
+            BlocksDict = [];
             Parser = new RenDisco.RenpyParser();
         }
 
@@ -33,23 +28,21 @@ namespace Doki.RenpyUtils
                 return;
 
             int[] beginningIndexes = Commands.Where(x => x.Type == "label").Select(x => Commands.IndexOf(x)).ToArray();
-
             if (beginningIndexes.Length == 0)
+            {
+                ConsoleUtils.Error("RenpyUtils", "Failed to convert DDLCScript to blocks -> RenDisco reported no labels for this script");
                 throw new Exception("Failed to convert DDLCScript to blocks -> RenDisco reported no labels for this script");
- 
+            }
+
             for (int i = 0; i < beginningIndexes.Length; i++)
             {
                 int startIndex = beginningIndexes[i];
                 int endIndex = i + 1 < beginningIndexes.Length ? beginningIndexes[i + 1] : Commands.Count;
-
                 string label = ((Label)Commands[startIndex]).Name;
 
                 List<RenpyCommand> blockCommands = Commands.GetRange(startIndex, endIndex - startIndex);
-
-                BlockEntryPoint entryPoint = new BlockEntryPoint(label);
-
+                BlockEntryPoint entryPoint = new(label);
                 RenpyBlock block = RenpyUtils.Translate(label, blockCommands);
-
                 var container = block.Contents;
 
                 foreach (var entry in RenpyUtils.Jumps)
@@ -69,9 +62,7 @@ namespace Doki.RenpyUtils
                 }
 
                 //Credits to Kizby for this jumps map implementation, I was overthinking if & elif and whatnot statements.
-
                 RenpyUtils.Jumps.Clear();
-
                 BlocksDict.Add(label, new Tuple<BlockEntryPoint, RenpyBlock>(entryPoint, block));
             }
         }

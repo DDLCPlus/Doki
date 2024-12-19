@@ -1,34 +1,17 @@
 ﻿using Doki.Mods;
-using Doki.Utils;
 using HarmonyLib;
 using RenpyLauncher;
-using RenpyParser;
-using RenPyParser.AssetManagement;
-using RenPyParser.Images;
-using SimpleExpressionEngine;
-using System;
-using System.Collections;
 using System.Collections.Generic;
-using System.IO;
-using System.Linq;
 using System.Reflection;
-using UnityEngine;
-using UnityEngine.Networking;
-using UnityEngine.SceneManagement;
-using UnityPS;
 
 namespace DokiModTest
 {
     public class DokiModTest : DokiMod
     {
         public override string ID => "DokiMod2";
-
         public override string Name => "Doki Mod Test";
-
         public override string Author => "Uh";
-
         public override string Version => "1.0";
-
         public override string LabelEntryPoint => "startmod";
 
         public override Dictionary<MethodBase, HarmonyMethod> Prefixes => new Dictionary<MethodBase, HarmonyMethod>()

@@ -2,8 +2,10 @@ using System;
 using System.Collections.Generic;
 using System.Text.RegularExpressions;
 
-namespace RenDisco {
-    public static class Evaluate {
+namespace RenDisco
+{
+    public static class Evaluate
+    {
 
         /// <summary>
         /// Evaluates a condition expressed as a string.

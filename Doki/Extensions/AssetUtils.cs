@@ -1,12 +1,8 @@
-﻿using Doki.Mods;
-using HarmonyLib;
-using RenPyParser.Images;
+﻿using HarmonyLib;
 using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+using System.Reflection;
 using UnityEngine;
 
 namespace Doki.Extensions
@@ -25,9 +21,11 @@ namespace Doki.Extensions
             }
         };
 
-        public static Dictionary<string, AssetBundle> AssetBundles = new Dictionary<string, AssetBundle>();
+        public static Dictionary<string, AssetBundle> AssetBundles = [];
+        public static Dictionary<string, Tuple<string, Tuple<string, bool>>> AssetsToBundles = [];
 
-        public static Dictionary<string, Tuple<string, Tuple<string, bool>>> AssetsToBundles = new Dictionary<string, Tuple<string, Tuple<string, bool>>>();
+        private static readonly MethodInfo loadAssetInternal = AccessTools.Method(typeof(AssetBundle), "LoadAsset_Internal");
+        private static readonly MethodInfo loadFromMemoryMethod = AccessTools.Method(typeof(AssetBundle), "LoadFromMemory_Internal");
 
         public static AssetBundle LoadAssetBundle(string path)
         {
@@ -37,29 +35,18 @@ namespace Doki.Extensions
             using (var tempStream = new MemoryStream((int)stream.Length))
             {
                 stream.CopyTo(tempStream);
-
-                var loadFromMemoryMethod = AccessTools.Method(typeof(AssetBundle), "LoadFromMemory_Internal");
-
-                bundle = (AssetBundle)loadFromMemoryMethod.Invoke(null, new object[] { tempStream.ToArray(), (uint)0 });
+                bundle = (AssetBundle)loadFromMemoryMethod.Invoke(null, [tempStream.ToArray(), (uint)0]);
                 bundle.hideFlags |= HideFlags.DontUnloadUnusedAsset;
             }
 
             return bundle;
         }
 
-        public static T ForceLoadAsset<T>(this AssetBundle bundle, string name) where T : UnityEngine.Object
-        {
-            var loadAssetInternal = AccessTools.Method(typeof(AssetBundle), "LoadAsset_Internal");
+        public static T ForceLoadAsset<T>(this AssetBundle bundle, string name) where T : UnityEngine.Object =>
+            (T)loadAssetInternal.Invoke(bundle, [name, typeof(T)]);
 
-            return (T)loadAssetInternal.Invoke(bundle, new object[] { name, typeof(T) });
-        }
-
-        public static UnityEngine.Object ForceLoadAsset(this AssetBundle bundle, string name, Type type)
-        {
-            var loadAssetInternal = AccessTools.Method(typeof(AssetBundle), "LoadAsset_Internal");
-
-            return (UnityEngine.Object)loadAssetInternal.Invoke(bundle, new object[] { name, type });
-        }
+        public static UnityEngine.Object ForceLoadAsset(this AssetBundle bundle, string name, Type type) =>
+            (UnityEngine.Object)loadAssetInternal.Invoke(bundle, [name, type]);
 
         public static Tuple<string, Tuple<string, bool>> GetBundleDetailsByAssetKey(string assetKey)
         {
@@ -77,8 +64,6 @@ namespace Doki.Extensions
 
             AssetBundle foundBundle = AssetUtils.AssetBundles[bundleDetails.Item1];
 
-            //AssetBundle foundBundle = AssetUtils.AssetBundles[bundleDetails.Item1];
-
             return foundBundle.LoadAsset(key, type);
             //return bundleDetails.Item2 ? foundBundle.ForceLoadAsset(key, type) : foundBundle.LoadAsset(key, type);
         }
@@ -86,9 +71,7 @@ namespace Doki.Extensions
         public static GameObject FixLoad(string key)
         {
             GameObject objResult = (GameObject)LoadFromUnknownBundle(key, typeof(GameObject));
-
-            Console.WriteLine("Do we have asset in db: " + AssetUtils.AssetsToBundles.ContainsKey(key) + " - fixLoad");
-
+            ConsoleUtils.Debug("Doki", $"Do we have asset in db: {AssetUtils.AssetsToBundles.ContainsKey(key)} - fixLoad");
             return objResult;
         }
     }

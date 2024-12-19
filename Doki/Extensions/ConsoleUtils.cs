@@ -1,23 +1,17 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.IO;
-using System.Linq;
 using System.Runtime.InteropServices;
-using System.Text;
 
 namespace Doki.Extensions
 {
-
     public static class ConsoleUtils
     {
         private const int STD_OUTPUT_HANDLE = -11;
 
         [DllImport("kernel32.dll")]
         private static extern IntPtr GetStdHandle(int nStdHandle);
-
         [DllImport("kernel32.dll")]
         private static extern bool SetStdHandle(int nStdHandle, IntPtr handle);
-
         [DllImport("kernel32.dll")]
         private static extern bool AllocConsole();
 
@@ -38,18 +32,61 @@ namespace Doki.Extensions
                 Console.Title = title;
         }
 
-        public static void Log(string text)
+        public static void Log(string moduleName, string text)
         {
-            Console.ForegroundColor = ConsoleColor.Magenta;
-            Console.Write("[Doki] ");
-            Console.ForegroundColor = ConsoleColor.Yellow;
-            Console.Write("(");
-            Console.ForegroundColor = ConsoleColor.White;
-            Console.Write(DateTime.Now.ToShortTimeString());
-            Console.ForegroundColor = ConsoleColor.Yellow;
-            Console.Write(")");
-            Console.ForegroundColor = ConsoleColor.White;
-            Console.Write(": " + text + "\n");
+            ColourWrite([
+                new ColouredText($"[Info] ", ConsoleColor.White),
+                new ColouredText($"({DateTime.Now.ToShortTimeString()}) ", ConsoleColor.DarkGray),
+                new ColouredText($"{moduleName}", ConsoleColor.Magenta),
+                new ColouredText($": {text}\n", ConsoleColor.White)
+            ]);
+        }
+
+        public static void Debug(string moduleName, string text)
+        {
+            ColourWrite([
+                new ColouredText($"[Debug] ", ConsoleColor.Gray),
+                new ColouredText($"({DateTime.Now.ToShortTimeString()}) ", ConsoleColor.DarkGray),
+                new ColouredText($"{moduleName}", ConsoleColor.Magenta),
+                new ColouredText($": {text}\n", ConsoleColor.Gray)
+            ]);
+        }
+
+        public static void Warning(string moduleName, string text)
+        {
+            ColourWrite([
+                new ColouredText($"[Warning] ", ConsoleColor.Yellow),
+                new ColouredText($"({DateTime.Now.ToShortTimeString()}) ", ConsoleColor.DarkGray),
+                new ColouredText($"{moduleName}", ConsoleColor.Magenta),
+                new ColouredText($": {text}\n", ConsoleColor.Yellow)
+            ]);
+        }
+
+        public static void Error(string moduleName, string text)
+        {
+            ColourWrite([
+                new ColouredText($"[Error] ", ConsoleColor.Red),
+                new ColouredText($"({DateTime.Now.ToShortTimeString()}) ", ConsoleColor.Gray),
+                new ColouredText($"{moduleName}", ConsoleColor.Magenta),
+                new ColouredText($": {text}\n", ConsoleColor.Red)
+            ]);
+        }
+
+        public static void ColourWrite(ColouredText[] text)
+        {
+            foreach (var segment in text)
+            {
+                Console.ForegroundColor = segment.Color;
+                Console.Write(segment.Text);
+            }
+            if (Console.ForegroundColor != ConsoleColor.White)
+                Console.ForegroundColor = ConsoleColor.White;
+        }
+
+        public class ColouredText(string text, ConsoleColor color)
+        {
+            public string Text { get; set; } = text;
+            public ConsoleColor Color { get; set; } = color;
         }
     }
 }

@@ -1,12 +1,11 @@
-using RenpyParser;
 using System;
 using System.Collections.Generic;
-using System.Data.Common;
 using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
 
-namespace RenDisco {
+namespace RenDisco
+{
     /// <summary>
     /// Parses Ren'Py script code and creates a list of RenpyCommand objects to represent the script.
     /// </summary>
@@ -94,7 +93,7 @@ namespace RenDisco {
 
             return commands;
         }
-        
+
         /// <summary>
         /// Adjust the active scope based on indentation level and markers.
         /// </summary>
@@ -107,7 +106,7 @@ namespace RenDisco {
                 scopeStack.Pop();
             }
         }
-        
+
 
         #region Scoping and Utility Methods
 
@@ -271,10 +270,9 @@ namespace RenDisco {
                 var label = new Label
                 {
                     Name = labelName,
-                    Indentation = indentationLevel
+                    Indentation = indentationLevel,
+                    Raw = trimmedLine
                 };
-
-                label.Raw = trimmedLine;
 
                 scopeStack.Peek().Commands.Add(label);
                 scopeStack.Push(new Scope(label.Commands, label));
@@ -532,7 +530,7 @@ namespace RenDisco {
 
             return false;
         }
-        
+
         private static bool ParseNarration(string trimmedLine, Scope currentScope)
         {
             // Detect lines beginning with dialogue quotes or a name followed by dialogue in quotes

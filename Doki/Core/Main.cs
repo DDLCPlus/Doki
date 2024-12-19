@@ -1,15 +1,12 @@
 ﻿using Doki.Extensions;
 using Doki.Mods;
 using Doki.RenpyUtils;
-using Doki.Utils;
 using System;
-using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Text;
 using UnityEngine;
 
-namespace Doki
+namespace Doki.Core
 {
     /*
      RENDISCO MIT LICENSE:
@@ -34,47 +31,37 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
     */
-
     public class Main : MonoBehaviour
     {
         public void Awake()
         {
             if (!Directory.Exists("Doki") && !Directory.Exists("Doki\\Mods"))
             {
-                ConsoleUtils.Log("First time setup.. creating necessary directories and loading assets..");
+                ConsoleUtils.Log("Doki", "First time setup.. creating necessary directories and loading assets..");
 
                 Directory.CreateDirectory("Doki");
                 Directory.CreateDirectory("Doki\\Mods");
 
-                ConsoleUtils.Log("First time setup complete! To install a mod, drag & drop it into the \"Mods\" folder which can be found within the \"Doki\" folder in your game directory.");
-
+                ConsoleUtils.Log("Doki", "First time setup complete! To install a mod, drag & drop it into the \"Mods\" folder which can be found within the \"Doki\" folder in your game directory.");
                 return;
             }
 
-            ConsoleUtils.Log("RenDisco parser setup.");
-            ConsoleUtils.Log("Loading mods..");
+            ConsoleUtils.Log("Doki", "RenDisco parser setup.\nLoading mods...");
 
             DokiModsManager.LoadMods();
-
             DokiMod contextMod = DokiModsManager.Mods.FirstOrDefault(x => x.ModifiesContext);
-
             if (contextMod != null)
             {
+                ConsoleUtils.Log("Doki", "Parsing blocks for Mod's scripts..");
+
                 DokiModsManager.ActiveScriptModifierIndex = DokiModsManager.Mods.IndexOf(contextMod);
 
-                ConsoleUtils.Log("Parsing blocks for Mod's scripts..");
-
                 string[] scriptPaths = Directory.GetFiles(contextMod.ScriptsPath);
-
                 for (int i = 0; i < scriptPaths.Count(); i++)
                 {
-                    string scriptPath = scriptPaths[i];
-
-                    ConsoleUtils.Log($"Parsing {scriptPath}...");
-
-                    RenpyScriptProcessor.ProcessScriptFromFile(scriptPath);
-
-                    ConsoleUtils.Log($"Blocks processed for script");
+                    ConsoleUtils.Log("Doki", $"Parsing {scriptPaths[i]}...");
+                    RenpyScriptProcessor.ProcessScriptFromFile(scriptPaths[i]);
+                    ConsoleUtils.Log("Doki", $"Blocks processed for script");
                 }
 
                 RenpyScriptProcessor.JumpTolabel = contextMod.LabelEntryPoint;
@@ -84,32 +71,28 @@ THE SOFTWARE.
             {
                 foreach (string assetBundlePath in Directory.GetFiles(mod.AssetsPath))
                 {
-                    ConsoleUtils.Log($"Loading mod asset bundle -> {assetBundlePath}");
+                    ConsoleUtils.Log("Doki", $"Loading mod asset bundle -> {assetBundlePath}");
 
                     string key = Path.GetFileNameWithoutExtension(assetBundlePath);
-
                     AssetBundle bundle = AssetUtils.LoadAssetBundle(assetBundlePath);
-
                     AssetUtils.AssetBundles.Add(key, bundle);
 
                     foreach (var asset in bundle.GetAllAssetNames())
                     {
-                        //bundle name, asset key, asset path in bundle
-                        Console.WriteLine($"Fake asset -> {key} -> {asset} -> {Path.GetFileNameWithoutExtension(asset)}");
+                        // bundle name, asset key, asset path in bundle
+                        ConsoleUtils.Debug("Doki", $"Fake asset -> {key} -> {asset} -> {Path.GetFileNameWithoutExtension(asset)}");
 
-                        // //assetKey -> bundleName -> assetFullPathInBundle
+                        // assetKey -> bundleName -> assetFullPathInBundle
                         AssetUtils.AssetsToBundles[Path.GetFileNameWithoutExtension(asset)] = new Tuple<string, Tuple<string, bool>>(key, new Tuple<string, bool>(asset, true));
                     }
 
-                    ConsoleUtils.Log($"Asset bundle loaded -> {key}");
+                    ConsoleUtils.Log("Doki", $"Asset bundle loaded -> {key}");
                 }
             }
 
-            ConsoleUtils.Log("Mod asset bundles loaded.");
-
+            ConsoleUtils.Log("Doki", "Mod asset bundles loaded.\nApplying patches...");
             PatchUtils.ApplyPatches();
-
-            ConsoleUtils.Log("Initialized BootLoader successfully");
+            ConsoleUtils.Log("Doki", "Initialized BootLoader successfully");
         }
     }
 }

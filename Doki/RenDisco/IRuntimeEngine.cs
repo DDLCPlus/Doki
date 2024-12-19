@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 
-namespace RenDisco {
+namespace RenDisco
+{
     public interface IRuntimeEngine
     {
         // Method to display dialogue for a specific character

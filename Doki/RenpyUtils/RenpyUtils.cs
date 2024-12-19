@@ -1,22 +1,12 @@
-﻿using Doki.Mods;
-using Doki.Utils;
-using HarmonyLib;
+﻿using HarmonyLib;
 using RenDisco;
 using RenpyParser;
 using RenPyParser;
 using RenPyParser.Transforms;
 using RenPyParser.VGPrompter.DataHolders;
-using SimpleExpressionEngine;
 using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
-using System.Reflection;
-using System.Runtime.Remoting.Contexts;
-using System.Security.Cryptography;
-using System.Text;
-using System.Threading.Tasks;
-using UnityEngine;
 using Dialogue = Doki.Extensions.Dialogue;
 
 namespace Doki.RenpyUtils
@@ -53,11 +43,11 @@ THE SOFTWARE.
 
         public static RenpyExecutionContext GetContext() => Context;
 
-        public static List<Dialogue> CustomDialogue = new List<Dialogue>();
-        public static List<int> CustomTextIDs = new List<int>();
-        public static Dictionary<Tuple<int, string>, RenpyDefinition> CustomDefinitions = new Dictionary<Tuple<int, string>, RenpyDefinition>();
-        public static Dictionary<object, Line> Jumps = new Dictionary<object, Line>();
-        public static Dictionary<string, string> Sounds = new Dictionary<string, string>();
+        public static List<Dialogue> CustomDialogue = [];
+        public static List<int> CustomTextIDs = [];
+        public static Dictionary<Tuple<int, string>, RenpyDefinition> CustomDefinitions = [];
+        public static Dictionary<object, Line> Jumps = [];
+        public static Dictionary<string, string> Sounds = [];
 
         public static Dialogue RetrieveLineFromText(string text)
         {
@@ -201,7 +191,7 @@ THE SOFTWARE.
 
         private static List<Line> HandleCondition(IfCondition ifCondition = null, ElifCondition elIfCondition = null)
         {
-            List<Line> RetLines = new List<Line>();
+            List<Line> RetLines = [];
 
             var afterIf = new RenpyNOP();
 
@@ -247,7 +237,7 @@ THE SOFTWARE.
         {
             //We need to get the elif's (if any) related to this if statement
 
-            List<ElifCondition> elifConditions = new List<ElifCondition>();
+            List<ElifCondition> elifConditions = [];
 
             ElseCondition elseCondition = null; //And check if there's an else statement
 
@@ -268,7 +258,7 @@ THE SOFTWARE.
 
             List<Line> retLines = [.. HandleCondition(condition, null)];
 
-            foreach(var elifCondition in elifConditions)
+            foreach (var elifCondition in elifConditions)
                 retLines.AddRange(HandleCondition(null, elifCondition));
 
             //Now that we have all the possible conditions in this block, we need to handle what to do after the statement
@@ -280,9 +270,10 @@ THE SOFTWARE.
         {
             string[] stopArguments = stopMusic.Raw.Split(' ');
 
-            RenpyStop retStop = new RenpyStop();
-
-            retStop.stop = new Stop();
+            RenpyStop retStop = new()
+            {
+                stop = new Stop()
+            };
 
             if (stopArguments.Length > 2)
                 retStop.stop.fadeout = (float)stopMusic.FadeOut;
@@ -301,9 +292,10 @@ THE SOFTWARE.
         {
             string[] playArguments = playMusic.Raw.Split(' ');
 
-            RenpyPlay retPlay = new RenpyPlay();
-
-            retPlay.play = new RenpyParser.Play();
+            RenpyPlay retPlay = new()
+            {
+                play = new RenpyParser.Play()
+            };
 
             retPlay.play.Asset = playMusic.File;
 
@@ -325,7 +317,7 @@ THE SOFTWARE.
         {
             string[] showArguments = show.Raw.Split(' ');
 
-            RenpyShow retShow = new RenpyShow("show ");
+            RenpyShow retShow = new("show ");
 
             retShow.show.IsImage = true;
             retShow.show.ImageName = showArguments[1];
@@ -367,7 +359,7 @@ THE SOFTWARE.
         {
             Console.WriteLine("Translating label..");
 
-            List<Line> Lines = new List<Line>();
+            List<Line> Lines = [];
             List<RenpyCommand> commands = ((Label)commandsPassed.First()).Commands;
 
             foreach (RenpyCommand command in commands)
@@ -418,10 +410,11 @@ THE SOFTWARE.
                 }
             }
 
-            RenpyBlock renpyBlock = new RenpyBlock(label);
-
-            renpyBlock.callParameters = [];
-            renpyBlock.Contents = Lines;
+            RenpyBlock renpyBlock = new(label)
+            {
+                callParameters = [],
+                Contents = Lines
+            };
 
             return renpyBlock;
         }
