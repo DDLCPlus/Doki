@@ -71,12 +71,28 @@ THE SOFTWARE.
             {
                 foreach (string assetBundlePath in Directory.GetFiles(mod.AssetsPath))
                 {
+                    string key = Path.GetFileNameWithoutExtension(assetBundlePath);
+
                     if (Path.GetExtension(assetBundlePath) != "" && !Path.GetExtension(assetBundlePath).ToLower().Contains("assetbundle"))
+                    {
+                        if (!AssetUtils.FakeBundles.ContainsKey(mod.ID))
+                        {
+                            AssetUtils.FakeBundles.Add(mod.ID, new ProxyAssetBundle());
+
+                            ConsoleUtils.Log("Doki", $"Proxying asset bundle for mod ID: {mod.ID}...");
+                        }
+
+                        ProxyAssetBundle proxyBundle = AssetUtils.FakeBundles[mod.ID];
+
+                        proxyBundle.Map(key, assetBundlePath);
+
+                        ConsoleUtils.Log("Doki", $"Mapping asset key: {key} to fake path -> {assetBundlePath}...");
+
                         continue;
+                    }
 
                     ConsoleUtils.Log("Doki", $"Loading mod asset bundle -> {assetBundlePath}");
 
-                    string key = Path.GetFileNameWithoutExtension(assetBundlePath);
                     AssetBundle bundle = AssetUtils.LoadAssetBundle(assetBundlePath);
                     AssetUtils.AssetBundles.Add(key, bundle);
 

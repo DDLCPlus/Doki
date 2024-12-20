@@ -306,6 +306,35 @@ namespace RenDisco
         public string Raw { get; set; }
     }
 
+    public class Image : RenpyCommand
+    {
+        public override string Type => "image";
+
+        /// <summary>
+        /// Gets or sets the name of the image.
+        /// </summary>
+        public string Name { get; set; }
+
+        /// <summary>
+        /// Gets or sets the value or definition of the image.
+        /// </summary>
+        public string Value { get; set; }
+
+        /// <summary>
+        /// Raw command content.
+        /// </summary>
+        public string Raw { get; set; }
+    }
+
+    public class With : RenpyCommand
+    {
+        public override string Type => "with";
+
+        public string Transition { get; set; }
+
+        public string Raw { get; set; }
+    }
+
     /// <summary>
     /// Represents a pause command to pause the execution for a specified duration.
     /// </summary>

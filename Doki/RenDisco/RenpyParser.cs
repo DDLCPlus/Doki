@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
+using System.Xml.Linq;
+using UnityEngine;
 
 namespace RenDisco
 {
@@ -48,6 +50,8 @@ namespace RenDisco
 
                 // Calculate indentation level and remove leading whitespace
                 string trimmedLine = line.TrimStart();
+                
+
                 int rawIndentationLevel = line.Length - trimmedLine.Length;
 
                 // Ignore empty and comment lines outside of multiline strings
@@ -78,6 +82,8 @@ namespace RenDisco
                 if (ParseLabel(trimmedLine, ref scopeStack, indentationLevel)) continue;
                 if (ParseScene(trimmedLine, scopeStack.Peek())) continue;
                 if (ParseDefine(trimmedLine, scopeStack.Peek())) continue;
+                if (ParseImage(trimmedLine, scopeStack.Peek())) continue;
+                if (ParseWith(trimmedLine, scopeStack.Peek())) continue;
                 if (ParseVariableAssignment(trimmedLine, scopeStack.Peek())) continue;
                 if (ParseMenu(trimmedLine, ref scopeStack)) continue;
                 if (ParseConditionalBlocks(trimmedLine, ref scopeStack)) continue;
@@ -242,23 +248,28 @@ namespace RenDisco
 
         private static MethodExpression ParseMethodExpression(string expressionText)
         {
-            var methodMatch = Regex.Match(expressionText, @"(\w+)\s*\((.*)\)");
-            if (methodMatch.Success && methodMatch.Groups.Count == 3)
+            try
             {
-                string methodName = methodMatch.Groups[1].Value;
-                string paramListText = methodMatch.Groups[2].Value;
-                var paramListExpression = ParseParamListExpression(paramListText);
-
-                return new MethodExpression
+                var methodMatch = Regex.Match(expressionText, @"(\w+)\s*\((.*)\)");
+                if (methodMatch.Success && methodMatch.Groups.Count == 3)
                 {
-                    MethodName = methodName,
-                    ParamList = paramListExpression as ParamListExpression,
-                    Raw = methodMatch.Groups[3].Value
-                };
+                    string methodName = methodMatch.Groups[1].Value;
+                    string paramListText = methodMatch.Groups[2].Value;
+                    var paramListExpression = ParseParamListExpression(paramListText);
+
+                    return new MethodExpression
+                    {
+                        MethodName = methodName,
+                        ParamList = paramListExpression as ParamListExpression,
+                        Raw = methodMatch.Groups[3].Value
+                    };
+                }
+                else
+                    return null;
             }
-            else
+            catch (Exception e)
             {
-                throw new ArgumentException($"Invalid method expression encountered: {expressionText}");
+                return null;
             }
         }
 
@@ -307,7 +318,6 @@ namespace RenDisco
                 string namePart = trimmedLine.Split('=')[0].Trim();
                 string valuePart = ExtractAfter(trimmedLine, "=").Trim();
 
-
                 var defineCmd = new Define
                 {
                     Name = ExtractAfter(namePart, "define ").Trim(),
@@ -316,6 +326,51 @@ namespace RenDisco
                     Raw = trimmedLine
                 };
                 currentScope.Commands.Add(defineCmd);
+                return true;
+            }
+
+            return false;
+        }
+
+        private static bool ParseImage(string trimmedLine, Scope currentScope)
+        {
+            if (trimmedLine.StartsWith("image "))
+            {
+                string content = ExtractAfter(trimmedLine, "image ").Trim();
+
+                int equalsIndex = content.IndexOf('=');
+
+                if (equalsIndex > 0)
+                {
+                    string name = content.Substring(0, equalsIndex).Trim();
+                    string value = content.Substring(equalsIndex + 1).Trim();
+
+                    currentScope.Commands.Add(new Image
+                    {
+                        Name = name,
+                        Value = value,
+                        Raw = trimmedLine
+                    });
+
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        private static bool ParseWith(string trimmedLine, Scope currentScope)
+        {
+            if (trimmedLine.StartsWith("with "))
+            {
+                string content = ExtractAfter(trimmedLine, "with ").Trim();
+
+                currentScope.Commands.Add(new With
+                {
+                    Transition = content,
+                    Raw = trimmedLine
+                });
+
                 return true;
             }
 

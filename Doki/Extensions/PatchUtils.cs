@@ -40,6 +40,8 @@ namespace Doki.Extensions
                 HarmonyInstance.Patch(typeof(RenpyLoadImage).GetMethod("Immediate", BindingFlags.Static | BindingFlags.Public), prefix: new HarmonyMethod(typeof(PatchUtils).GetMethod("ImmediatePatch", BindingFlags.Static | BindingFlags.NonPublic)));
                 HarmonyInstance.Patch(typeof(RenpyCallstackEntry).GetMethod("Next"), postfix: new HarmonyMethod(typeof(PatchUtils).GetMethod("NextPatch", BindingFlags.Static | BindingFlags.NonPublic)));
                 HarmonyInstance.Patch(typeof(MusicSource).GetMethod("InitAudioSource", BindingFlags.Instance | BindingFlags.NonPublic), prefix: new HarmonyMethod(typeof(PatchUtils).GetMethod("InitAudioSourcePatch", BindingFlags.Static | BindingFlags.NonPublic))); //If I could patch IResources.Load's implementation and have it trigger with 0Harmony, I would. I'm sorry.
+                HarmonyInstance.Patch(typeof(RenpyExecutionContext).GetMethod("InitialiseWithAudioDefines", BindingFlags.Instance | BindingFlags.NonPublic), prefix: new HarmonyMethod(typeof(PatchUtils).GetMethod("InitialiseWithAudioDefinesPatch", BindingFlags.Static | BindingFlags.NonPublic)));
+                HarmonyInstance.Patch(typeof(RenpyScript).GetMethods().Where(x => x.Name == "Init").Last(), postfix: new HarmonyMethod(typeof(PatchUtils).GetMethod("InitPatch", BindingFlags.Static | BindingFlags.NonPublic)));
 
                 foreach (var mod in DokiModsManager.Mods)
                 {
@@ -77,11 +79,79 @@ namespace Doki.Extensions
             }
         }
 
+        private static void InitPatch(RenpyScript __instance, Defaults defaults, Dictionary<string, CharacterData> characters, Defaults globals, StyleDefinitions styles, Dictionary<string, Dictionary<int, string>> lines, Dictionary<string, RenpyAudioData> audio, GameObject libObject)
+        {
+            RenpyDefinition[] CustomCharacters = RenpyUtils.RenpyUtils.CustomDefinitions.Where(x => x.Type == DefinitionType.Character).ToArray();
+            //RenpyDefinition[] CustomAudios = RenpyUtils.RenpyUtils.CustomDefinitions.Where(x => x.Type == DefinitionType.Audio).ToArray();
+
+            foreach (var customChar in RenpyUtils.RenpyUtils.Characters)
+                __instance.Characters.Add(customChar.Key, customChar.Value);
+
+            //foreach(RenpyDefinition CustomAudio in CustomAudios)
+            //{
+            //    string name = CustomAudio.Name;
+            //    string value = CustomAudio.Value;
+
+            //    if (value.Contains(".ogg") || value.Contains(".mp3") || value.Contains(".wav"))
+            //        __instance.AudioDefines.Add(name, RenpyAudioData.CreateAudioData(value));
+            //}
+        }
+
         private static void NextPatch(RenpyCallstackEntry __instance, Line __result)
         {
             CurrentLine = (int)__instance.GetPrivateField("lastLine");
-            if (RenpyUtils.RenpyUtils.CustomDefinitions.TryGetValue(new Tuple<int, string>(CurrentLine, __instance.blockName), out RenpyDefinition definition))
+
+            if (RenpyUtils.RenpyUtils.CustomVariables.TryGetValue(new Tuple<int, string>(CurrentLine, __instance.blockName), out RenpyDefinition definition))
                 Renpy.CurrentContext.SetVariableString(definition.Name, definition.Value.ToString());
+        }
+
+        private static bool InitialiseWithAudioDefinesPatch(RenpyExecutionContext __instance, AudioDefines defines)
+        {
+            Dictionary<string, DataValue> dictionary = new Dictionary<string, DataValue>();
+            Dictionary<string, DataValue> m_ExecutionVariables = (Dictionary<string, DataValue>)__instance.GetPrivateField("m_ExecutionVariables");
+
+            m_ExecutionVariables["audio"] = new DataValue(dictionary);
+
+            foreach (KeyValuePair<string, RenpyAudioData> keyValuePair in defines.GetDictionary())
+            {
+                dictionary[keyValuePair.Key] = new DataValue(keyValuePair.Value);
+            }
+
+            foreach (RenpyDefinition renpyDefinition in RenpyUtils.RenpyUtils.CustomDefinitions)
+            {
+                string name = renpyDefinition.Name;
+                string value = renpyDefinition.Value;
+
+                if (value.Contains(".ogg") || value.Contains(".mp3") || value.Contains(".wav"))
+                    dictionary[name] = new DataValue(RenpyAudioData.CreateAudioData(value));
+            }
+
+            __instance.SetPrivateField("m_ExecutionVariables", m_ExecutionVariables);
+
+            return false;
+        }
+
+        private static bool AudioDefinesPatch(AudioDefines __instance)
+        {
+            Dictionary<string, RenpyAudioData> __audioDefines = new Dictionary<string, RenpyAudioData>();
+
+            for (int num = 0; num != Math.Min(__instance.audioKeys.Count, __instance.audioValues.Count); num++)
+            {
+                __audioDefines.Add(__instance.audioKeys[num], __instance.audioValues[num]);
+            }
+
+            foreach (RenpyDefinition renpyDefinition in RenpyUtils.RenpyUtils.CustomDefinitions)
+            {
+                string name = renpyDefinition.Name;
+                string value = renpyDefinition.Value;
+
+                if (value.Contains(".ogg") || value.Contains(".mp3") || value.Contains(".wav"))
+                    __audioDefines.Add(name, RenpyAudioData.CreateAudioData(value));
+            }
+
+            __instance.SetPrivateField("__audioDefines", __audioDefines);
+
+            return false;
         }
 
         private static void LoadPermanentBundlesPatch(ref ActiveAssetBundles __instance)
@@ -104,7 +174,11 @@ namespace Doki.Extensions
                     // //assetKey -> bundleName -> assetFullPathInBundle
 
                     string assetKey = Path.GetFileNameWithoutExtension(asset);
+
                     AssetUtils.AssetsToBundles[assetKey] = new Tuple<string, Tuple<string, bool>>(key, new Tuple<string, bool>(asset, true));
+
+                    if (key.StartsWith("bgm") || key.StartsWith("sfx"))
+                        AssetUtils.QuickAudioAssetMap[assetKey] = key;
                 }
             }
 
@@ -138,16 +212,32 @@ namespace Doki.Extensions
 
         private static bool LoadPatch(AssetBundle __instance, string name, Type type, ref object __result)
         {
-            if (!AssetUtils.AssetBundles.ContainsKey(__instance.name))
-                return true;
+            //ProxyAssetBundle ProxyBundle = AssetUtils.FakeBundles.Values.FirstOrDefault(x => x.FakeInstance == __instance);
 
-            if (name != "select" && name != "hover" && name != "frame")
-                ConsoleUtils.Debug("Doki", $"Trying to force load -> {name} as type: {type}");
+            //if (ProxyBundle == null)
+            //{
+                if (!AssetUtils.AssetBundles.ContainsKey(__instance.name))
+                    return true;
 
-            //Yes, I know I have an instance to the AssetBundle but shit will fucking crash if I use it.
+                if (name != "select" && name != "hover" && name != "frame")
+                    ConsoleUtils.Debug("Doki", $"Trying to force load -> {name} as type: {type}");
 
-            AssetBundle realInstance = AssetUtils.AssetBundles[__instance.name];
-            __result = realInstance.ForceLoadAsset(name, type);
+                //Yes, I know I have an instance to the AssetBundle but shit will fucking crash if I use it.
+
+                AssetBundle realInstance = AssetUtils.AssetBundles[__instance.name];
+                __result = realInstance.ForceLoadAsset(name, type);
+
+            //}
+
+            //string shortenedName = Path.GetFileNameWithoutExtension(name);
+
+            //if (!ProxyBundle.Exists(shortenedName))
+            //    return true; //??
+
+            //string outPath = ProxyBundle.ToPath(shortenedName);
+
+            //__result = AssetUtils.LoadFromProxyBundle(outPath, type.ToString());
+
             return false;
         }
 
@@ -173,37 +263,27 @@ namespace Doki.Extensions
                 ConsoleUtils.Log("Doki", $"Block processed -> {block.Key}");
             }
 
-            //__blockEntryPoints.Add("bg_test_original", new BlockEntryPoint("bg_test_original"));
-            //__blockEntryPoints.Add("bg bg_test2", new BlockEntryPoint("bg bg_test2"));
+            RenpyDefinition[] backgroundDefinitions = RenpyUtils.RenpyUtils.CustomDefinitions.Where(x => x.Type == DefinitionType.Image && x.Name.StartsWith("bg ")).ToArray();
 
-            //__blocks.Add("bg bg_test2", new RenpyBlock("bg bg_test2")
-            //{
-            //    callParameters = new RenpyCallParameter[0],
-            //    Contents = new List<Line>()
-            //    {
-            //        new RenpyGoTo("bg_test_original", true, "call bg_test_original"),
-            //        new RenpySize("size(1280,720)", null, null, true, true)
-            //    }
-            //});
+            foreach (var backgroundDefinition in backgroundDefinitions)
+            {
+                string labelThatCalls = backgroundDefinition.Name; //the label just -> call label that loads image file -> sizes -> in this case bg bg_test2
+                string bundleName = backgroundDefinition.Value.Split('/')[0]; //bundle that holds custom background label that loads sprite -> in this case bgextended
+                string prefabForBackground = backgroundDefinition.Value.Split('/')[1]; //prefab name for game obj with bg -> in this case bg_test_original.prefab aka bg_test_original
+                string imageFile = backgroundDefinition.Value.Split('/')[2]; //image file -> in this case bg_test2.png
 
-            //__blocks.Add("bg bg_test2", new RenpyBlock("bg bg_test2")
-            //{
-            //    callParameters = new RenpyCallParameter[0],
-            //    Contents = new List<Line>()
-            //    {
-            //        new RenpyLoadImage("bg_test_original", "bg/bg_test2.png"),
-            //        new RenpySize("size(1280,720)", null, null, true, true)
-            //    }
-            //});
+                __blockEntryPoints.Add(labelThatCalls, new BlockEntryPoint(labelThatCalls));
 
-            //__blocks.Add("bg_test_original", new RenpyBlock("bg_test_original")
-            //{
-            //    callParameters = new RenpyCallParameter[0],
-            //    Contents = new List<Line>()
-            //    {
-            //        new RenpyLoadImage("bg_test_original", "bg/bg_test_original.prefab")
-            //    }
-            //});
+                __blocks.Add(labelThatCalls, new RenpyBlock(labelThatCalls)
+                {
+                    callParameters = new RenpyCallParameter[0],
+                    Contents = new List<Line>()
+                    {
+                        new RenpyLoadImage(prefabForBackground, $"{bundleName}/{imageFile}"),
+                        AssetUtils.CreateSize(1280, 720)
+                    }
+                });
+            }
 
             foreach (var block in __blocks)
             {
@@ -267,7 +347,8 @@ namespace Doki.Extensions
             //simple asset name = 2
             // load from simple asset name but check from name
 
-            if (!RenpyUtils.RenpyUtils.Sounds.Contains(audioData.name))
+
+            if (!RenpyUtils.RenpyUtils.Sounds.Contains(audioData.name) && !RenpyUtils.RenpyUtils.Sounds.Contains(audioData.simpleAssetName))
                 return true; //It is a whole nightmare dealing with official shit
 
             var musicSources = AccessTools.Field(__instance.GetType(), "musicSources").GetValue(__instance) as AudioSource[];
@@ -293,11 +374,13 @@ namespace Doki.Extensions
                 return true;
 
             AudioClip audioClip = foundBundle.ForceLoadAsset<AudioClip>(audioData.simpleAssetName);
+
             audioSource.clip = audioClip;
 
             if (looped)
             {
                 string loop = audioData.GetLoop(context);
+
                 audioSource.time = string.IsNullOrEmpty(loop) ? 0f : float.Parse(loop);
             }
             else
@@ -313,7 +396,6 @@ namespace Doki.Extensions
                 while (startTime >= endTime - 0.05f && startTime >= 0.05f)
                     startTime -= endTime - loopPoint;
 
-                startTime = Math.Max(0f, startTime);
                 audioSource.time = startTime;
             }
 
@@ -380,6 +462,7 @@ namespace Doki.Extensions
                 return true;
 
             var line = RenpyUtils.RenpyUtils.RetrieveLineFromText(dialogueLine.TextID);
+
             if (line != null)
             {
                 dialogueLine.Text = line.Text;

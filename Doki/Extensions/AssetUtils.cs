@@ -1,10 +1,12 @@
 ﻿using HarmonyLib;
+using RenpyParser;
 using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Reflection;
 using UnityEngine;
+using UnityEngine.Networking;
 
 namespace Doki.Extensions
 {
@@ -22,8 +24,12 @@ namespace Doki.Extensions
             }
         };
 
+        public static Dictionary<string, ProxyAssetBundle> FakeBundles = new Dictionary<string, ProxyAssetBundle>(); //mod ID -> fake asset bundles
+
         public static Dictionary<string, AssetBundle> AssetBundles = [];
         public static Dictionary<string, Tuple<string, Tuple<string, bool>>> AssetsToBundles = [];
+
+        public static Dictionary<string, string> QuickAudioAssetMap = new Dictionary<string, string>(); //asset key -> bundle name
 
         private static readonly MethodInfo loadAssetInternal = AccessTools.Method(typeof(AssetBundle), "LoadAsset_Internal");
         private static readonly MethodInfo loadFromMemoryMethod = AccessTools.Method(typeof(AssetBundle), "LoadFromMemory_Internal");
@@ -41,6 +47,27 @@ namespace Doki.Extensions
             }
 
             return bundle;
+        }
+
+        public static object LoadFromProxyBundle(string path, string type)
+        {
+            object __result = null;
+
+            switch (type)
+            {
+                case "UnityEngine.AudioClip":
+                    UnityWebRequest request = UnityWebRequestMultimedia.GetAudioClip(path, path.Contains(".ogg") ? AudioType.OGGVORBIS : AudioType.MPEG);
+
+                    request.SendWebRequest().completed += (operation) =>
+                    {
+                        AudioClip clip = DownloadHandlerAudioClip.GetContent(request);
+
+                        __result = clip;
+                    };
+                    break;
+            }
+
+            return __result;
         }
 
         public static T ForceLoadAsset<T>(this AssetBundle bundle, string name) where T : UnityEngine.Object =>
@@ -64,37 +91,38 @@ namespace Doki.Extensions
             return secondMethod ? foundBundle.ForceLoadAsset(key, type) : foundBundle.LoadAsset(key, type);
         }
 
+        public static RenpySize CreateSize(int width, int height)
+        {
+            RenpySize ret = new RenpySize($"size({width}x{height})", null, null, true, true);
+
+            var sizeXProperty = typeof(RenpySize).GetProperty("SizeX", BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public);
+            var sizeYProperty = typeof(RenpySize).GetProperty("SizeY", BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public);
+
+            if (sizeXProperty != null)
+                sizeXProperty.SetValue(ret, width);
+
+            if (sizeYProperty != null)
+                sizeYProperty.SetValue(ret, height);
+
+            return ret;
+        }
+
         public static AssetBundle GetPreciseAudioRelatedBundle(string assetKey)
         {
             if (assetKey == "7g2")
                 return AssetUtils.AssetBundles["bgm-coarse00"];
 
-            string[] baseAudioBundles = {
-                "bgm-coarse",
-                "bgm-coarse00",
-                "bgm-ddlcplus-coarse",
-                "sfx-coarse"
-            };
-
-            // If assetKey is in baseAudioBundles, return it directly
-            foreach(var baseAudioBundle in baseAudioBundles)
+            if (!QuickAudioAssetMap.ContainsKey(assetKey))
             {
-                AssetBundle baseBundle = AssetUtils.AssetBundles[baseAudioBundle];
+                var outCome = AssetUtils.GetBundleDetailsByAssetKey(assetKey);
 
-                if (baseBundle.GetAllAssetNames().Any(assetName => Path.GetFileNameWithoutExtension(assetName) == assetKey))
-                    return baseBundle;
+                if (outCome == default)
+                    return null;
+
+                return AssetUtils.AssetBundles[outCome.Item1];
             }
-
-            foreach (var bundleEntry in AssetUtils.AssetBundles)
-            {
-                string assetBundleName = bundleEntry.Key;
-                AssetBundle bundle = bundleEntry.Value;
-
-                if (bundle.GetAllAssetNames().Any(assetName => Path.GetFileNameWithoutExtension(assetName) == assetKey))
-                    return bundle;
-            }
-
-            return null;
+            else
+                return AssetBundles[QuickAudioAssetMap[assetKey]];
         }
 
         public static GameObject FixLoad(string key)

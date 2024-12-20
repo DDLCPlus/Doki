@@ -42,6 +42,7 @@ namespace Doki.RenpyUtils
 
                 List<RenpyCommand> blockCommands = Commands.GetRange(startIndex, endIndex - startIndex);
                 BlockEntryPoint entryPoint = new(label);
+
                 RenpyBlock block = RenpyUtils.Translate(label, blockCommands);
                 var container = block.Contents;
 

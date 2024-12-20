@@ -8,6 +8,7 @@ using RenPyParser.VGPrompter.DataHolders;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.RegularExpressions;
 using Dialogue = Doki.Extensions.Dialogue;
 
 namespace Doki.RenpyUtils
@@ -46,7 +47,9 @@ THE SOFTWARE.
 
         public static List<Dialogue> CustomDialogue = [];
         public static List<int> CustomTextIDs = [];
-        public static Dictionary<Tuple<int, string>, RenpyDefinition> CustomDefinitions = [];
+        public static Dictionary<Tuple<int, string>, RenpyDefinition> CustomVariables = [];
+        public static List<RenpyDefinition> CustomDefinitions = [];
+        public static Dictionary<string, CharacterData> Characters = new Dictionary<string, CharacterData>();
         public static Dictionary<object, Line> Jumps = [];
         public static List<string> Sounds = new List<string>();
 
@@ -59,6 +62,55 @@ THE SOFTWARE.
             }
 
             return null;
+        }
+
+        public static CharacterData ParseCharacterDefinition(string rawDefinition)
+        {
+            CharacterData character = new CharacterData();
+
+            if (rawDefinition.Contains("DynamicCharacter("))
+            {
+                int startIndex = rawDefinition.IndexOf("DynamicCharacter(") + "DynamicCharacter(".Length;
+                int endIndex = rawDefinition.LastIndexOf(")");
+
+                string arguments = rawDefinition.Substring(startIndex, endIndex - startIndex);
+
+                string[] args = arguments.Split(',');
+
+                foreach (var arg in args)
+                {
+                    var parts = arg.Split('=');
+
+                    if (parts.Length == 1)
+                        character.name = parts[0].Trim().Trim('\'');
+                    else if (parts.Length == 2)
+                    {
+                        string key = parts[0].Trim();
+                        string value = parts[1].Trim().Trim('\'', '\"');
+
+                        switch (key)
+                        {
+                            case "image":
+                                character.image = value;
+                                break;
+                            case "what_prefix":
+                                character.what_prefix = value;
+                                break;
+                            case "what_suffix":
+                                character.what_suffix = value;
+                                break;
+                            case "ctc":
+                                character.ctc = value;
+                                break;
+                            case "ctc_position":
+                                character.ctc_position = value;
+                                break;
+                        }
+                    }
+                }
+            }
+
+            return character;
         }
 
         public static Dialogue RetrieveLineFromText(int textID)
@@ -364,6 +416,20 @@ THE SOFTWARE.
             return retShow;
         }
 
+        public static Line HandleDialogue(string label, string text, bool includeQuotes, bool allowSkip, string character_tag, string command_type = "say", bool glitch_text = false)
+        {
+            string characterTag = character_tag;
+
+            RenpyDefinition characterDefinition = CustomDefinitions.FirstOrDefault(x => x.Name == characterTag && x.Type == DefinitionType.Character);
+
+            if (characterDefinition != null && !Characters.ContainsKey(characterTag))
+                Characters.Add(characterTag, ParseCharacterDefinition(characterDefinition.Value));
+
+            if (Characters.ContainsKey(character_tag))
+                characterTag = Characters[character_tag].name;
+
+            return MakeDialogueLine(label, text, includeQuotes, allowSkip, characterTag, command_type, glitch_text);
+        }
 
         public static RenpyBlock Translate(string label, List<RenpyCommand> commandsPassed)
         {
@@ -379,13 +445,16 @@ THE SOFTWARE.
                 switch (command)
                 {
                     case RenDisco.Dialogue dialogue:
-                        Lines.Add(Dialogue(label, dialogue.Text, true, false, dialogue.Character, "say", false));
+                        Lines.Add(HandleDialogue(label, dialogue.Text, true, false, dialogue.Character, "say", false));
                         break;
                     case RenDisco.Hide hide:
                         Lines.Add(new RenpyHide()
                         {
                             hide = new RenpyParser.Hide(hide.Image, hide.Raw.Split(' ')[1] == "screen")
                         });
+                        break;
+                    case RenDisco.With with:
+                        Lines.Add(new RenpyWith(with.Transition, SimpleExpressionEngine.Parser.Compile(with.Transition)));
                         break;
                     case RenDisco.Show show:
                         Lines.Add(ParseShowSequence(show));
@@ -411,13 +480,22 @@ THE SOFTWARE.
                         Lines.Add(new RenpyPause(pause.Raw, SimpleExpressionEngine.Parser.Compile(pause.Raw)));
                         break;
                     case Narration narration:
-                        Lines.Add(Dialogue(label, narration.Text, false, false, "", "menu-with-caption", false));
+                        Lines.Add(MakeDialogueLine(label, narration.Text, false, false, "", "menu-with-caption", false));
+                        break;
+                    case RenDisco.Image image:
+                        CustomDefinitions.Add(new RenpyDefinition(image.Name, image.Value.Replace("\"", ""), DefinitionType.Image));
                         break;
                     case RenDisco.Return _:
                         Lines.Add(new RenpyReturn());
                         break;
                     case RenDisco.Define define:
-                        CustomDefinitions.Add(new Tuple<int, string>(commands.IndexOf(command), label), new RenpyDefinition(define.Name, define.Value.Replace("\"", "")));
+                        if (define.Raw.Contains("$"))
+                            CustomVariables.Add(new Tuple<int, string>(commands.IndexOf(command), label), new RenpyDefinition(define.Name, define.Value.Replace("\"", ""), DefinitionType.Variable));
+                        else if (define.Raw.Contains("DynamicCharacter("))
+                            CustomDefinitions.Add(new RenpyDefinition(define.Name, define.Value.Replace("\"", ""), DefinitionType.Character));
+                        else
+                            CustomDefinitions.Add(new RenpyDefinition(define.Name, define.Value.Replace("\"", ""), DefinitionType.Audio)); //fucking handle other cases idk
+
                         break;
                 }
             }
@@ -431,7 +509,7 @@ THE SOFTWARE.
             return renpyBlock;
         }
 
-        public static Line Dialogue(string label, string what, bool quotes = true, bool skipWait = false, string who = "mc", string command_type = "say", bool glitch = false)
+        public static Line MakeDialogueLine(string label, string what, bool quotes = true, bool skipWait = false, string who = "mc", string command_type = "say", bool glitch = false)
         {
             string text = what;
 
