@@ -88,6 +88,7 @@ namespace RenDisco
                 if (ParseMenu(trimmedLine, ref scopeStack)) continue;
                 if (ParseConditionalBlocks(trimmedLine, ref scopeStack)) continue;
                 if (ParseJump(trimmedLine, scopeStack.Peek())) continue;
+                if (ParseCall(trimmedLine, scopeStack.Peek())) continue;
                 if (ParsePause(trimmedLine, scopeStack.Peek())) continue;
                 if (ParseMusicCommands(trimmedLine, scopeStack.Peek())) continue;
                 if (ParseShowHideCommands(trimmedLine, scopeStack.Peek())) continue;
@@ -456,6 +457,18 @@ namespace RenDisco
             {
                 var targetLabel = ExtractAfter(trimmedLine, "jump ");
                 currentScope.Commands.Add(new Jump { Label = targetLabel });
+                return true;
+            }
+
+            return false;
+        }
+
+        private static bool ParseCall(string trimmedLine, Scope currentScope)
+        {
+            if (trimmedLine.StartsWith("call "))
+            {
+                var targetLabel = ExtractAfter(trimmedLine, "call ");
+                currentScope.Commands.Add(new Call { Label = targetLabel });
                 return true;
             }
 

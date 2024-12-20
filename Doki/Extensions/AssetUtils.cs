@@ -1,5 +1,6 @@
 ﻿using HarmonyLib;
 using RenpyParser;
+using RenPyParser.AssetManagement;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -7,6 +8,7 @@ using System.Linq;
 using System.Reflection;
 using UnityEngine;
 using UnityEngine.Networking;
+using UnityPS;
 
 namespace Doki.Extensions
 {
@@ -81,6 +83,29 @@ namespace Doki.Extensions
             if (AssetUtils.AssetsToBundles.TryGetValue(assetKey, out Tuple<string, Tuple<string, bool>> output))
                 return output;
             else return default;
+        }
+
+        public static AssetBundle LoadGameBundle(string label)
+        {
+            string streamingAssetsPath = Application.streamingAssetsPath;
+            string platformForAssetBundles = PathHelpers.GetPlatformForAssetBundles(Application.platform);
+            string text = Path.Combine(streamingAssetsPath, string.Concat(new string[]
+            {
+                "AssetBundles/",
+                platformForAssetBundles,
+                "/",
+                label,
+                ".cy"
+            }));
+
+            AssetBundle assetBundle = AssetBundle.LoadFromStream(new XorFileStream(text, FileMode.Open, FileAccess.Read, 40));
+
+            if (assetBundle == null)
+            {
+                throw new InvalidOperationException("Trying to load an asset bundle that doesn't exist': " + text);
+            }
+
+            return assetBundle;
         }
 
         public static UnityEngine.Object LoadFromUnknownBundle(string key, Type type, bool secondMethod = false)

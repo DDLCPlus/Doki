@@ -462,6 +462,9 @@ THE SOFTWARE.
                     case Jump jump:
                         Lines.Add(new RenpyGoTo(jump.Label, false, $"jump {jump.Label}"));
                         break;
+                    case Call call:
+                        Lines.Add(new RenpyGoTo(call.Label, true, $"call {call.Label}"));
+                        break;
                     case RenDisco.IfCondition ifCondition:
                         Lines.AddRange(HandleIfStatement(currentLine, commands, ifCondition));
                         break;

@@ -362,4 +362,11 @@ namespace RenDisco
         /// </summary>
         public string Label { get; set; }
     }
+
+    public class Call : RenpyCommand
+    {
+        public override string Type => "call";
+
+        public string Label { get; set; }
+    }
 }

@@ -49,7 +49,9 @@ THE SOFTWARE.
             ConsoleUtils.Log("Doki", "RenDisco parser setup.\nLoading mods...");
 
             DokiModsManager.LoadMods();
+
             DokiMod contextMod = DokiModsManager.Mods.FirstOrDefault(x => x.ModifiesContext);
+
             if (contextMod != null)
             {
                 ConsoleUtils.Log("Doki", "Parsing blocks for Mod's scripts..");
@@ -65,6 +67,16 @@ THE SOFTWARE.
                 }
 
                 RenpyScriptProcessor.JumpTolabel = contextMod.LabelEntryPoint;
+            }
+
+            AssetBundle PlusBgmCoarse = AssetUtils.LoadGameBundle("bgm-ddlcplus-coarse"); //for some reason the game doesnt load this in load permanent asset bundles?
+
+            AssetUtils.AssetBundles.Add("bgm-ddlcplus-coarse", PlusBgmCoarse); //y2k4 :pleading_face: please clean this and maybe turn loading asset bundles and mapping their internal asset names into a func?
+
+            foreach (var asset in PlusBgmCoarse.GetAllAssetNames())
+            {
+                // assetKey -> bundleName -> assetFullPathInBundle
+                AssetUtils.AssetsToBundles[Path.GetFileNameWithoutExtension(asset)] = new Tuple<string, Tuple<string, bool>>("bgm-ddlcplus-coarse", new Tuple<string, bool>(asset, true));
             }
 
             foreach (DokiMod mod in DokiModsManager.Mods)
