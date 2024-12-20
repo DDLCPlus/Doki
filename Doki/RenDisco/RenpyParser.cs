@@ -32,9 +32,9 @@ namespace RenDisco
         /// <returns>A list of RenpyCommand objects representing the script.</returns>
         public List<RenpyCommand> Parse(string rpyCode)
         {
-            List<RenpyCommand> commands = new List<RenpyCommand>();
+            List<RenpyCommand> commands = [];
             string[] lines = Regex.Split(rpyCode, "\r\n|\r|\n");
-            Stack<Scope> scopeStack = new Stack<Scope>();
+            Stack<Scope> scopeStack = new();
 
             // Start with the root scope
             scopeStack.Push(new Scope(commands));
@@ -135,7 +135,6 @@ namespace RenDisco
                     Character = currentScope.LastSpeaker,
                     Text = multiLineStringAccumulator.Trim()
                 });
-                multilineCharacter = null;
                 multiLineStringAccumulator = "";
                 return true;
             }
@@ -268,7 +267,7 @@ namespace RenDisco
                 else
                     return null;
             }
-            catch (Exception e)
+            catch (Exception)
             {
                 return null;
             }
@@ -298,7 +297,7 @@ namespace RenDisco
         {
             if (trimmedLine.StartsWith("scene "))
             {
-                string[] parts = trimmedLine.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
+                string[] parts = trimmedLine.Split([' '], StringSplitOptions.RemoveEmptyEntries);
                 var scene = new Scene { Image = parts[1], Raw = trimmedLine };
                 if (parts.Length > 2 && parts[2] == "with")
                 {
@@ -479,17 +478,13 @@ namespace RenDisco
         {
             if (trimmedLine.StartsWith("pause"))
             {
-                var parts = trimmedLine.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
-
-                Pause pause = new Pause();
-
-                pause.Raw = trimmedLine;
+                var parts = trimmedLine.Split([' '], StringSplitOptions.RemoveEmptyEntries);
+                Pause pause = new() { Raw = trimmedLine };
 
                 if (parts.Length > 0)
                     pause.Duration = double.Parse(parts[1]);
 
                 currentScope.Commands.Add(pause);
-
                 return true;
             }
 
@@ -500,7 +495,7 @@ namespace RenDisco
         {
             if (trimmedLine.StartsWith("play music "))
             {
-                string[] parts = trimmedLine.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
+                string[] parts = trimmedLine.Split([' '], StringSplitOptions.RemoveEmptyEntries);
                 var playMusic = new PlayMusic { File = parts[2].Trim('"'), Raw = trimmedLine };
                 if (parts.Length > 3 && parts[3] == "fadein")
                 {
@@ -512,14 +507,10 @@ namespace RenDisco
 
             if (trimmedLine.StartsWith("stop music"))
             {
-                var stopMusic = new StopMusic();
-
-                stopMusic.Raw = trimmedLine;
-
+                var stopMusic = new StopMusic { Raw = trimmedLine };
                 if (trimmedLine.Contains("fadeout"))
-                {
                     stopMusic.FadeOut = double.Parse(ExtractAfter(trimmedLine, "fadeout "));
-                }
+
                 currentScope.Commands.Add(stopMusic);
                 return true;
             }
@@ -531,7 +522,7 @@ namespace RenDisco
         {
             if (trimmedLine.StartsWith("show "))
             {
-                string[] parts = trimmedLine.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
+                string[] parts = trimmedLine.Split([' '], StringSplitOptions.RemoveEmptyEntries);
                 var showCommand = new Show { Image = parts[1], Raw = trimmedLine };
                 if (parts.Length > 2 && parts[2] == "at")
                 {
@@ -549,7 +540,7 @@ namespace RenDisco
 
             if (trimmedLine.StartsWith("hide "))
             {
-                string[] parts = trimmedLine.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
+                string[] parts = trimmedLine.Split([' '], StringSplitOptions.RemoveEmptyEntries);
                 var hideCommand = new Hide { Image = parts[1], Raw = trimmedLine };
                 if (parts.Length > 4 && parts[2] == "with")
                 {
@@ -583,7 +574,7 @@ namespace RenDisco
             // Detect lines beginning with dialogue quotes or a name followed by dialogue in quotes
             if ((trimmedLine.Contains(" ") && trimmedLine.IndexOf('"') > 0))
             {
-                var parts = trimmedLine.Split(new[] { '\"' }, 2, StringSplitOptions.RemoveEmptyEntries);
+                var parts = trimmedLine.Split(['\"'], 2, StringSplitOptions.RemoveEmptyEntries);
                 string character = parts[0].Trim();
                 string text = parts[1].Trim().TrimEnd('\"');
                 currentScope.LastSpeaker = character;
@@ -631,20 +622,12 @@ namespace RenDisco
         #endregion
 
         // Scope class for managing nested blocks and commands
-        private class Scope
+        private class Scope(List<RenpyCommand> commands, RenpyCommand? renpyCommand = null)
         {
-            public List<RenpyCommand> Commands { get; }
-            public int? Indentation { get; set; }
-            public RenpyCommand? ScopeHead { get; set; }
-            public string? LastSpeaker { get; set; }
-
-            public Scope(List<RenpyCommand> commands, RenpyCommand? renpyCommand = null)
-            {
-                Commands = commands;
-                ScopeHead = renpyCommand;
-                Indentation = null;
-                LastSpeaker = null;
-            }
+            public List<RenpyCommand> Commands { get; } = commands;
+            public int? Indentation { get; set; } = null;
+            public RenpyCommand? ScopeHead { get; set; } = renpyCommand;
+            public string? LastSpeaker { get; set; } = null;
         }
     }
 }

@@ -26,12 +26,11 @@ namespace Doki.Extensions
             }
         };
 
-        public static Dictionary<string, ProxyAssetBundle> FakeBundles = new Dictionary<string, ProxyAssetBundle>(); //mod ID -> fake asset bundles
-
+        public static Dictionary<string, ProxyAssetBundle> FakeBundles = []; //mod ID -> fake asset bundles
         public static Dictionary<string, AssetBundle> AssetBundles = [];
         public static Dictionary<string, Tuple<string, Tuple<string, bool>>> AssetsToBundles = [];
 
-        public static Dictionary<string, string> QuickAudioAssetMap = new Dictionary<string, string>(); //asset key -> bundle name
+        public static Dictionary<string, string> QuickAudioAssetMap = []; //asset key -> bundle name
 
         private static readonly MethodInfo loadAssetInternal = AccessTools.Method(typeof(AssetBundle), "LoadAsset_Internal");
         private static readonly MethodInfo loadFromMemoryMethod = AccessTools.Method(typeof(AssetBundle), "LoadFromMemory_Internal");
@@ -59,13 +58,7 @@ namespace Doki.Extensions
             {
                 case "UnityEngine.AudioClip":
                     UnityWebRequest request = UnityWebRequestMultimedia.GetAudioClip(path, path.Contains(".ogg") ? AudioType.OGGVORBIS : AudioType.MPEG);
-
-                    request.SendWebRequest().completed += (operation) =>
-                    {
-                        AudioClip clip = DownloadHandlerAudioClip.GetContent(request);
-
-                        __result = clip;
-                    };
+                    request.SendWebRequest().completed += _ => __result = DownloadHandlerAudioClip.GetContent(request);
                     break;
             }
 
@@ -87,22 +80,13 @@ namespace Doki.Extensions
 
         public static AssetBundle LoadGameBundle(string label)
         {
-            string streamingAssetsPath = Application.streamingAssetsPath;
-            string platformForAssetBundles = PathHelpers.GetPlatformForAssetBundles(Application.platform);
-            string text = Path.Combine(streamingAssetsPath, string.Concat(new string[]
-            {
-                "AssetBundles/",
-                platformForAssetBundles,
-                "/",
-                label,
-                ".cy"
-            }));
-
-            AssetBundle assetBundle = AssetBundle.LoadFromStream(new XorFileStream(text, FileMode.Open, FileAccess.Read, 40));
+            string text = Path.Combine(Application.streamingAssetsPath, $"AssetBundles/{PathHelpers.GetPlatformForAssetBundles(Application.platform)}/{label}.cy");
+            AssetBundle assetBundle = AssetBundle.LoadFromStream(new XorFileStream(text, FileMode.Open, FileAccess.Read));
 
             if (assetBundle == null)
             {
-                throw new InvalidOperationException("Trying to load an asset bundle that doesn't exist': " + text);
+                ConsoleUtils.Error("Doki", $"Trying to load an asset bundle that doesn't exist: {text}");
+                throw new InvalidOperationException($"Trying to load an asset bundle that doesn't exist: {text}");
             }
 
             return assetBundle;
@@ -118,16 +102,13 @@ namespace Doki.Extensions
 
         public static RenpySize CreateSize(int width, int height)
         {
-            RenpySize ret = new RenpySize($"size({width}x{height})", null, null, true, true);
+            RenpySize ret = new($"size({width}x{height})", null, null, true, true);
 
             var sizeXProperty = typeof(RenpySize).GetProperty("SizeX", BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public);
             var sizeYProperty = typeof(RenpySize).GetProperty("SizeY", BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public);
 
-            if (sizeXProperty != null)
-                sizeXProperty.SetValue(ret, width);
-
-            if (sizeYProperty != null)
-                sizeYProperty.SetValue(ret, height);
+            sizeXProperty?.SetValue(ret, width); // If null, set value
+            sizeYProperty?.SetValue(ret, height); // I had no clue this existed this is fucking cool
 
             return ret;
         }

@@ -7,7 +7,6 @@ namespace Doki
     public static class BootLoader
     {
         public static bool DontLoad = false;
-
         public static bool NoConsole = false;
 
         public static void Load()

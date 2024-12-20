@@ -49,9 +49,9 @@ THE SOFTWARE.
         public static List<int> CustomTextIDs = [];
         public static Dictionary<Tuple<int, string>, RenpyDefinition> CustomVariables = [];
         public static List<RenpyDefinition> CustomDefinitions = [];
-        public static Dictionary<string, CharacterData> Characters = new Dictionary<string, CharacterData>();
+        public static Dictionary<string, CharacterData> Characters = [];
         public static Dictionary<object, Line> Jumps = [];
-        public static List<string> Sounds = new List<string>();
+        public static List<string> Sounds = [];
 
         public static Dialogue RetrieveLineFromText(string text)
         {
@@ -66,16 +66,13 @@ THE SOFTWARE.
 
         public static CharacterData ParseCharacterDefinition(string rawDefinition)
         {
-            CharacterData character = new CharacterData();
-
+            CharacterData character = new();
             if (rawDefinition.Contains("DynamicCharacter("))
             {
                 int startIndex = rawDefinition.IndexOf("DynamicCharacter(") + "DynamicCharacter(".Length;
                 int endIndex = rawDefinition.LastIndexOf(")");
 
-                string arguments = rawDefinition.Substring(startIndex, endIndex - startIndex);
-
-                string[] args = arguments.Split(',');
+                string[] args = rawDefinition.Substring(startIndex, endIndex - startIndex).Split(',');
 
                 foreach (var arg in args)
                 {
@@ -134,81 +131,41 @@ THE SOFTWARE.
                 {
                     case RenpyShow renpyShow:
                         var show = renpyShow.show;
-                        var toLog = "show";
-
-                        if (show.IsLayer)
-                        {
-                            toLog += " layer " + show.Name;
-                        }
-                        else
-                        {
-                            toLog += " " + show.AssetName;
-                        }
-
-                        if (show.As != "")
-                        {
-                            toLog += " as " + show.As;
-                        }
-
                         var transform = show.TransformName;
 
                         if (transform == "" && show.IsLayer)
-                        {
                             transform = "resetlayer";
-                        }
 
-                        if (transform != "")
-                        {
-                            toLog += " at " + show.TransformName;
-                        }
-
-                        if (show.HasBehind)
-                        {
-                            toLog += " behind " + show.Behind;
-                        }
-                        if (!show.IsLayer)
-                        {
-                            toLog += " onlayer " + show.Layer;
-                        }
-                        if (show.HasZOrder)
-                        {
-                            toLog += " zorder " + show.ZOrder;
-                        }
-
-                        output += toLog + "\n";
+                        output += $"show{
+                            (show.IsLayer ? $" layer {show.Name}" : $" {show.AssetName}") +
+                            (show.As != "" ? $" as {show.As}" : "") +
+                            (transform != "" ? $" at {show.TransformName}" : "") +
+                            (show.HasBehind ? $" behind {show.Behind}" : "") +
+                            (show.IsLayer ? $" onlayer {show.Layer}" : "") +
+                            (show.HasZOrder ? $" zorder {show.ZOrder}" : "")}\n";
                         break;
                     case RenpyLoadImage loadImage:
                         output += $"image bg {loadImage.key} = \"{loadImage.fullImageDetails}\"\n";
                         break;
                     case RenpyHide hide:
-                        output += hide.HideData + "\n";
+                        output += $"{hide.HideData}\n";
                         break;
                     case RenpyPlay play:
-                        output += play.PlayData + "\n";
+                        output += $"{play.PlayData}\n";
                         break;
                     case RenpyPause pause:
-                        output += pause.PauseData + "\n";
+                        output += $"{pause.PauseData}\n";
                         break;
                     case RenpyGoTo goTo:
-                        var gotoDump = goTo.IsCall ? "call " : "jump ";
-
-                        if (goTo.TargetLabel != "")
-                            gotoDump += goTo.TargetLabel;
-                        else
-                            gotoDump += goTo.targetExpression.ToString();
-
-                        if (goTo.IsCall)
-                        {
-                            gotoDump += "(" + goTo.callParameters.Join(p => p.expression.ToString()) + ")";
-                        }
-
-                        output += gotoDump + "\n";
+                        output += (goTo.IsCall ? "call " : "jump ") +
+                            (goTo.TargetLabel != "" ? goTo.TargetLabel : goTo.targetExpression.ToString()) +
+                            (goTo.IsCall ? $"({goTo.callParameters.Join(p => p.expression.ToString())})" : "") + "\n";
                         break;
                     case RenpyStop stop:
-                        output += stop.StopData + "\n";
+                        output += $"{stop.StopData}\n";
                         break;
                     case RenpyQueue queue:
-                        output += queue.QueueData + "\n";
+                        output += $"{queue.QueueData}\n";
                         break;
                     case RenpyNOP nop:
                         output += "pass\n";
@@ -217,19 +174,19 @@ THE SOFTWARE.
                         output += "return\n";
                         break;
                     case RenpySize size:
-                        output += size.SizeData + "\n";
+                        output += $"{size.SizeData}\n";
                         break;
                     case RenpyEasedTransform renpyEasedTransform:
-                        output += renpyEasedTransform.TransformCommand + "\n";
+                        output += $"{renpyEasedTransform.TransformCommand}\n";
                         break;
                     case RenpyGoToLineUnless renpyGoToLineUnless:
-                        output += "goto " + renpyGoToLineUnless.TargetLine + " unless " + renpyGoToLineUnless.ConditionText + "\n";
+                        output += $"goto {renpyGoToLineUnless.TargetLine} unless {renpyGoToLineUnless.ConditionText}\n";
                         break;
                     case RenpyImmediateTransform renpyImmediateTransform:
-                        output += renpyImmediateTransform.TransformCommand + "\n";
+                        output += $"{renpyImmediateTransform.TransformCommand}\n";
                         break;
                     case RenpyGoToLine renpyGoToLine:
-                        output += "goto " + renpyGoToLine.TargetLine + "\n";
+                        output += $"goto {renpyGoToLine.TargetLine}\n";
                         break;
                     case RenpyForkGoToLine renpyForkGoToLine:
                         output += $"fork goto {renpyForkGoToLine.TargetLine}\n";
@@ -238,26 +195,19 @@ THE SOFTWARE.
             }
 
             output += "\nEND\n";
-
-            ConsoleUtils.Log("Doki", output);
+            ConsoleUtils.Debug("Doki", output);
         }
 
         private static List<Line> HandleCondition(IfCondition ifCondition = null, ElifCondition elIfCondition = null)
         {
             List<Line> RetLines = [];
-
             var afterIf = new RenpyNOP();
-
             RenpyGoToLineUnless lastGoto = null;
 
             if (ifCondition != null)
             {
                 var compiledCondition = SimpleExpressionEngine.Parser.Compile(ifCondition.Condition);
-
-                var gotoStmt = new RenpyGoToLineUnless(ifCondition.Condition, -1)
-                {
-                    CompiledExpression = compiledCondition
-                };
+                var gotoStmt = new RenpyGoToLineUnless(ifCondition.Condition, -1) { CompiledExpression = compiledCondition };
 
                 RetLines.Add(gotoStmt);
                 lastGoto = gotoStmt;
@@ -266,21 +216,15 @@ THE SOFTWARE.
             if (elIfCondition != null)
             {
                 var compiledCondition = SimpleExpressionEngine.Parser.Compile(elIfCondition.Condition);
-
-                var gotoStmt = new RenpyGoToLineUnless(elIfCondition.Condition, -1)
-                {
-                    CompiledExpression = compiledCondition
-                };
+                var gotoStmt = new RenpyGoToLineUnless(elIfCondition.Condition, -1) { CompiledExpression = compiledCondition };
 
                 RetLines.Add(gotoStmt);
                 lastGoto = gotoStmt;
             }
 
             var hardGoto = new RenpyGoToLine(-1);
-
             RenpyUtils.Jumps.Add(hardGoto, afterIf);
             RenpyUtils.Jumps.Add(lastGoto, afterIf);
-
             RetLines.Add(afterIf);
 
             return RetLines;
@@ -288,18 +232,15 @@ THE SOFTWARE.
 
         private static List<Line> HandleIfStatement(int currentLine, List<RenpyCommand> commands, IfCondition condition)
         {
-            //We need to get the elif's (if any) related to this if statement
+            // We need to get the elif's (if any) related to this if statement
 
             List<ElifCondition> elifConditions = [];
-
-            ElseCondition elseCondition = null; //And check if there's an else statement
+            ElseCondition elseCondition = null; // And check if there's an else statement
 
             for (int i = currentLine + 1; i < commands.Count; i++)
             {
                 if (commands[i] is ElifCondition elifCondition)
-                {
                     elifConditions.Add(elifCondition);
-                }
                 else if (commands[i] is ElseCondition eCondition)
                 {
                     elseCondition = eCondition;
@@ -310,11 +251,10 @@ THE SOFTWARE.
             }
 
             List<Line> retLines = [.. HandleCondition(condition, null)];
-
             foreach (var elifCondition in elifConditions)
                 retLines.AddRange(HandleCondition(null, elifCondition));
 
-            //Now that we have all the possible conditions in this block, we need to handle what to do after the statement
+            // Now that we have all the possible conditions in this block, we need to handle what to do after the statement
 
             return retLines;
         }
@@ -322,70 +262,56 @@ THE SOFTWARE.
         private static RenpyStop ParseStopSequence(RenDisco.StopMusic stopMusic)
         {
             string[] stopArguments = stopMusic.Raw.Split(' ');
-
-            RenpyStop retStop = new()
-            {
-                stop = new Stop()
-            };
+            RenpyStop retStop = new() { stop = new Stop() };
 
             if (stopArguments.Length > 2)
                 retStop.stop.fadeout = (float)stopMusic.FadeOut;
 
-            if (stopArguments[1] == "musicpoem")
-                retStop.stop.Channel = Channel.MusicPoem;
-            else if (stopArguments[1] == "sound")
-                retStop.stop.Channel = Channel.Sound;
-            else
-                retStop.stop.Channel = Channel.Music;
-
+            retStop.stop.Channel = stopArguments[1] switch
+            {
+                "musicpoem" => Channel.MusicPoem,
+                "sound" => Channel.Sound,
+                _ => Channel.Music,
+            };
             return retStop;
         }
 
         private static RenpyPlay ParsePlaySequence(RenDisco.PlayMusic playMusic)
         {
             string[] playArguments = playMusic.Raw.Split(' ');
-
-            RenpyPlay retPlay = new()
-            {
-                play = new RenpyParser.Play()
-            };
-
-            retPlay.play.Asset = playMusic.File;
+            RenpyPlay retPlay = new() { play = new RenpyParser.Play() { Asset = playMusic.File } };
 
             if (playArguments.Length > 3) //Handle fadein
                 retPlay.play.fadein = (float)playMusic.FadeIn;
 
-            if (playArguments[1] == "musicpoem")
-                retPlay.play.Channel = Channel.MusicPoem;
-            else if (playArguments[1] == "sound")
-                retPlay.play.Channel = Channel.Sound;
-            else
-                retPlay.play.Channel = Channel.Music;
-
+            retPlay.play.Channel = playArguments[1] switch
+            {
+                "musicpoem" => Channel.MusicPoem,
+                "sound" => Channel.Sound,
+                _ => Channel.Music,
+            };
             return retPlay;
         }
 
         private static RenpyShow ParseShowSequence(RenDisco.Show show)
-        {
-            //Yeah Yeah I get it, parse the shit when the parser has already done it..
-
+        { // Yeah Yeah I get it, parse the shit when the parser has already done it..
             string[] showArguments = show.Raw.Split(' ');
-
-            RenpyShow retShow = new("show ");
-
-            retShow.show.IsImage = true;
-            retShow.show.ImageName = showArguments[1];
-            retShow.show.Variant = showArguments.Length > 2 ? showArguments[2] : "";
-            retShow.show.TransformName = "";
-            retShow.show.TransformCallParameters = [];
-            retShow.show.Layer = "master";
-            retShow.show.As = "";
-            retShow.show.HasZOrder = false;
+            RenpyShow retShow = new("show ") {
+                show = {
+                    IsImage = true,
+                    ImageName = showArguments[1],
+                    Variant = showArguments.Length > 2 ? showArguments[2] : "",
+                    TransformName = "",
+                    TransformCallParameters = [],
+                    Layer = "master",
+                    As = "",
+                    HasZOrder = false
+                }
+            };
 
             for (int i = 0; i < showArguments.Length; i++)
             {
                 string arg = showArguments[i];
-
                 if (arg.StartsWith("zorder"))
                 {
                     if (int.TryParse(arg.Substring("zorder".Length), out int zorder))
@@ -410,25 +336,22 @@ THE SOFTWARE.
                         retShow.show.As = showArguments[++i];
                 }
             }
-
             retShow.ShowData = show.Raw;
-
+            
             return retShow;
         }
 
         public static Line HandleDialogue(string label, string text, bool includeQuotes, bool allowSkip, string character_tag, string command_type = "say", bool glitch_text = false)
         {
-            string characterTag = character_tag;
+            RenpyDefinition characterDefinition = CustomDefinitions.FirstOrDefault(x => x.Name == character_tag && x.Type == DefinitionType.Character);
 
-            RenpyDefinition characterDefinition = CustomDefinitions.FirstOrDefault(x => x.Name == characterTag && x.Type == DefinitionType.Character);
-
-            if (characterDefinition != null && !Characters.ContainsKey(characterTag))
-                Characters.Add(characterTag, ParseCharacterDefinition(characterDefinition.Value));
+            if (characterDefinition != null && !Characters.ContainsKey(character_tag))
+                Characters.Add(character_tag, ParseCharacterDefinition(characterDefinition.Value));
 
             if (Characters.ContainsKey(character_tag))
-                characterTag = Characters[character_tag].name;
+                character_tag = Characters[character_tag].name;
 
-            return MakeDialogueLine(label, text, includeQuotes, allowSkip, characterTag, command_type, glitch_text);
+            return MakeDialogueLine(label, text, includeQuotes, allowSkip, character_tag, command_type, glitch_text);
         }
 
         public static RenpyBlock Translate(string label, List<RenpyCommand> commandsPassed)
@@ -473,7 +396,6 @@ THE SOFTWARE.
                         break;
                     case PlayMusic playMusic:
                         Lines.Add(ParsePlaySequence(playMusic));
-
                         RenpyUtils.Sounds.Add(playMusic.File);
                         break;
                     case StopMusic stopMusic:
@@ -498,7 +420,6 @@ THE SOFTWARE.
                             CustomDefinitions.Add(new RenpyDefinition(define.Name, define.Value.Replace("\"", ""), DefinitionType.Character));
                         else
                             CustomDefinitions.Add(new RenpyDefinition(define.Name, define.Value.Replace("\"", ""), DefinitionType.Audio)); //fucking handle other cases idk
-
                         break;
                 }
             }

@@ -115,12 +115,12 @@ namespace RenDisco
         /// <returns>Boolean result of the logic evaluation.</returns>
         private static bool EvaluateBooleanLogic(IRuntimeEngine runtime, string condition)
         {
-            var andParts = condition.Split(new[] { " and " }, StringSplitOptions.None);
+            var andParts = condition.Split([" and "], StringSplitOptions.None);
             var orParts = new List<string>();
 
             foreach (var part in andParts)
             {
-                orParts.AddRange(part.Split(new[] { " or " }, StringSplitOptions.None));
+                orParts.AddRange(part.Split([" or "], StringSplitOptions.None));
             }
 
             foreach (var andCondition in andParts)

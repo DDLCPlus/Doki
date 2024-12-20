@@ -42,6 +42,7 @@ namespace Doki.Extensions
                 HarmonyInstance.Patch(typeof(MusicSource).GetMethod("InitAudioSource", BindingFlags.Instance | BindingFlags.NonPublic), prefix: new HarmonyMethod(typeof(PatchUtils).GetMethod("InitAudioSourcePatch", BindingFlags.Static | BindingFlags.NonPublic))); //If I could patch IResources.Load's implementation and have it trigger with 0Harmony, I would. I'm sorry.
                 HarmonyInstance.Patch(typeof(RenpyExecutionContext).GetMethod("InitialiseWithAudioDefines", BindingFlags.Instance | BindingFlags.NonPublic), prefix: new HarmonyMethod(typeof(PatchUtils).GetMethod("InitialiseWithAudioDefinesPatch", BindingFlags.Static | BindingFlags.NonPublic)));
                 HarmonyInstance.Patch(typeof(RenpyScript).GetMethods().Where(x => x.Name == "Init").Last(), postfix: new HarmonyMethod(typeof(PatchUtils).GetMethod("InitPatch", BindingFlags.Static | BindingFlags.NonPublic)));
+                HarmonyInstance.Patch(typeof(RenpyWindowManager).GetMethod("Say"), new HarmonyMethod(typeof(PatchUtils).GetMethod("SayPatch", BindingFlags.Static | BindingFlags.NonPublic)));
 
                 foreach (var mod in DokiModsManager.Mods)
                 {
@@ -63,8 +64,6 @@ namespace Doki.Extensions
                         }
                     }
                 }
-
-                HarmonyInstance.Patch(typeof(RenpyWindowManager).GetMethod("Say"), new HarmonyMethod(typeof(PatchUtils).GetMethod("SayPatch", BindingFlags.Static | BindingFlags.NonPublic)));
 
                 ConsoleUtils.Log("Doki", "[BASE PATCH PREFIXES] Patched");
             }
@@ -107,7 +106,7 @@ namespace Doki.Extensions
 
         private static bool InitialiseWithAudioDefinesPatch(RenpyExecutionContext __instance, AudioDefines defines)
         {
-            Dictionary<string, DataValue> dictionary = new Dictionary<string, DataValue>();
+            Dictionary<string, DataValue> dictionary = [];
             Dictionary<string, DataValue> m_ExecutionVariables = (Dictionary<string, DataValue>)__instance.GetPrivateField("m_ExecutionVariables");
 
             m_ExecutionVariables["audio"] = new DataValue(dictionary);
@@ -127,13 +126,12 @@ namespace Doki.Extensions
             }
 
             __instance.SetPrivateField("m_ExecutionVariables", m_ExecutionVariables);
-
             return false;
         }
 
         private static bool AudioDefinesPatch(AudioDefines __instance)
         {
-            Dictionary<string, RenpyAudioData> __audioDefines = new Dictionary<string, RenpyAudioData>();
+            Dictionary<string, RenpyAudioData> __audioDefines = [];
 
             for (int num = 0; num != Math.Min(__instance.audioKeys.Count, __instance.audioValues.Count); num++)
             {
@@ -150,7 +148,6 @@ namespace Doki.Extensions
             }
 
             __instance.SetPrivateField("__audioDefines", __audioDefines);
-
             return false;
         }
 
@@ -171,10 +168,9 @@ namespace Doki.Extensions
 
                 foreach (var asset in bundleVal.GetAllAssetNames())
                 {
-                    // //assetKey -> bundleName -> assetFullPathInBundle
+                    // assetKey -> bundleName -> assetFullPathInBundle
 
                     string assetKey = Path.GetFileNameWithoutExtension(asset);
-
                     AssetUtils.AssetsToBundles[assetKey] = new Tuple<string, Tuple<string, bool>>(key, new Tuple<string, bool>(asset, true));
 
                     if (key.StartsWith("bgm") || key.StartsWith("sfx"))
@@ -248,17 +244,17 @@ namespace Doki.Extensions
 
             foreach (var block in RenpyScriptProcessor.BlocksDict)
             {
-                string labelShit = block.Key;
-                Tuple<BlockEntryPoint, RenpyBlock> blockShit = block.Value;
+                string label = block.Key;
+                Tuple<BlockEntryPoint, RenpyBlock> brick = block.Value;
 
-                if (__blocks.TryGetValue(labelShit, out RenpyBlock _))
+                if (__blocks.TryGetValue(label, out RenpyBlock _))
                 {
-                    __blocks.Remove(labelShit);
-                    __blockEntryPoints.Remove(labelShit);
+                    __blocks.Remove(label);
+                    __blockEntryPoints.Remove(label);
                 }
 
-                __blockEntryPoints.Add(labelShit, blockShit.Item1);
-                __blocks.Add(labelShit, blockShit.Item2);
+                __blockEntryPoints.Add(label, brick.Item1);
+                __blocks.Add(label, brick.Item2);
 
                 ConsoleUtils.Log("Doki", $"Block processed -> {block.Key}");
             }
@@ -276,12 +272,8 @@ namespace Doki.Extensions
 
                 __blocks.Add(labelThatCalls, new RenpyBlock(labelThatCalls)
                 {
-                    callParameters = new RenpyCallParameter[0],
-                    Contents = new List<Line>()
-                    {
-                        new RenpyLoadImage(prefabForBackground, $"{bundleName}/{imageFile}"),
-                        AssetUtils.CreateSize(1280, 720)
-                    }
+                    callParameters = [],
+                    Contents = [ new RenpyLoadImage(prefabForBackground, $"{bundleName}/{imageFile}"), AssetUtils.CreateSize(1280, 720) ]
                 });
             }
 
@@ -329,7 +321,6 @@ namespace Doki.Extensions
         private static bool TryResolveLabelPatch(ref RenpyScript __instance, ref string label)
         {
             //ConsoleUtils.Debug("Doki", $"Trying to resolve normal label -> {label}");
-
             return true;
         }
 
@@ -347,7 +338,6 @@ namespace Doki.Extensions
             //simple asset name = 2
             // load from simple asset name but check from name
 
-
             if (!RenpyUtils.RenpyUtils.Sounds.Contains(audioData.name) && !RenpyUtils.RenpyUtils.Sounds.Contains(audioData.simpleAssetName))
                 return true; //It is a whole nightmare dealing with official shit
 
@@ -360,27 +350,23 @@ namespace Doki.Extensions
                 index = 0;
 
             AudioSource audioSource = musicSources[index];
-
             object musicDataInstance = ((Array)musicDataArray).GetValue(index);
 
             int queueIndex = (index + 1) % sourceCount;
             queueIndexField.SetValue(__instance, queueIndex);
 
             object nextMusicData = ((Array)musicDataArray).GetValue(queueIndex);
-
             AssetBundle foundBundle = AssetUtils.GetPreciseAudioRelatedBundle(audioData.simpleAssetName);
 
             if (foundBundle == null)
                 return true;
 
             AudioClip audioClip = foundBundle.ForceLoadAsset<AudioClip>(audioData.simpleAssetName);
-
             audioSource.clip = audioClip;
 
             if (looped)
             {
                 string loop = audioData.GetLoop(context);
-
                 audioSource.time = string.IsNullOrEmpty(loop) ? 0f : float.Parse(loop);
             }
             else
@@ -423,14 +409,14 @@ namespace Doki.Extensions
                 audioSource.PlayScheduled(nextStartTime);
 
                 if (!string.IsNullOrWhiteSpace(setFlag))
-                    __instance.StartCoroutine((IEnumerator)AccessTools.Method(__instance.GetType(), "FlagCoroutine").Invoke(__instance, new object[] { nextStartTime, setFlag }));
+                    __instance.StartCoroutine((IEnumerator)AccessTools.Method(__instance.GetType(), "FlagCoroutine").Invoke(__instance, [nextStartTime, setFlag]));
             }
 
             var calculateNextStartTimeMethod = AccessTools.Method(typeof(MusicSource), "CalculateNextStartTime");
-            double calculatedNextStartTime = (double)calculateNextStartTimeMethod.Invoke(null, new object[] { musicDataInstance, audioSource, context });
+            double calculatedNextStartTime = (double)calculateNextStartTimeMethod.Invoke(null, [musicDataInstance, audioSource, context]);
 
             var setScheduledEndTimeMethod = AccessTools.Method(typeof(AudioSource), "SetScheduledEndTime");
-            setScheduledEndTimeMethod.Invoke(audioSource, new object[] { calculatedNextStartTime });
+            setScheduledEndTimeMethod.Invoke(audioSource, [calculatedNextStartTime]);
 
             var currentEndTimeField = AccessTools.Field(__instance.GetType(), "m_CurrentEndTime");
             currentEndTimeField.SetValue(__instance, calculatedNextStartTime);
@@ -462,7 +448,6 @@ namespace Doki.Extensions
                 return true;
 
             var line = RenpyUtils.RenpyUtils.RetrieveLineFromText(dialogueLine.TextID);
-
             if (line != null)
             {
                 dialogueLine.Text = line.Text;

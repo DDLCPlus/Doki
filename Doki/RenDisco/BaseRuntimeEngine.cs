@@ -6,8 +6,8 @@ namespace RenDisco
 {
     public class BaseRuntimeEngine : IRuntimeEngine
     {
-        private Dictionary<string, object> _variables = new Dictionary<string, object>();
-        private Dictionary<string, Dictionary<string, string?>> _characters = new Dictionary<string, Dictionary<string, string?>>();
+        private Dictionary<string, object> _variables = [];
+        private Dictionary<string, Dictionary<string, string?>> _characters = [];
 
         /// <summary>
         /// Displays dialogue for a specific character or as narration if no character is provided.
@@ -141,7 +141,7 @@ namespace RenDisco
         {
             if (define.Definition?.MethodName == "Character")
             {
-                Dictionary<string, string?> characterSettings = new Dictionary<string, string?>();
+                Dictionary<string, string?> characterSettings = [];
 
                 foreach (ParamPairExpression paramPair in define.Definition.ParamList.Params)
                 {
@@ -153,24 +153,17 @@ namespace RenDisco
                             characterSettings[paramPair.ParamName] = ((StringLiteralExpression)paramPair.ParamValue).Value;
                             break;
                         default:
-                            if (paramPair.ParamValue is StringLiteralExpression)
-                                characterSettings["name"] = ((StringLiteralExpression)paramPair.ParamValue).Value;
+                            if (paramPair.ParamValue is StringLiteralExpression expression)
+                                characterSettings["name"] = expression.Value;
                             break;
                     }
                 }
 
                 if (characterSettings.ContainsKey("name"))
-                {
-                    DefineCharacter(
-                        define.Name,
-                        characterSettings
-                    );
-                }
+                    DefineCharacter(define.Name, characterSettings);
             }
             else
-            {
                 SetVariable(define.Name, define.Value.Trim('"'));
-            }
         }
 
         /// <summary>

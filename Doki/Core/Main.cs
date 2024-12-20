@@ -49,9 +49,7 @@ THE SOFTWARE.
             ConsoleUtils.Log("Doki", "RenDisco parser setup.\nLoading mods...");
 
             DokiModsManager.LoadMods();
-
             DokiMod contextMod = DokiModsManager.Mods.FirstOrDefault(x => x.ModifiesContext);
-
             if (contextMod != null)
             {
                 ConsoleUtils.Log("Doki", "Parsing blocks for Mod's scripts..");
@@ -70,7 +68,6 @@ THE SOFTWARE.
             }
 
             AssetBundle PlusBgmCoarse = AssetUtils.LoadGameBundle("bgm-ddlcplus-coarse"); //for some reason the game doesnt load this in load permanent asset bundles?
-
             AssetUtils.AssetBundles.Add("bgm-ddlcplus-coarse", PlusBgmCoarse); //y2k4 :pleading_face: please clean this and maybe turn loading asset bundles and mapping their internal asset names into a func?
 
             foreach (var asset in PlusBgmCoarse.GetAllAssetNames())
@@ -85,26 +82,20 @@ THE SOFTWARE.
                 {
                     string key = Path.GetFileNameWithoutExtension(assetBundlePath);
 
-                    if (Path.GetExtension(assetBundlePath) != "" && !Path.GetExtension(assetBundlePath).ToLower().Contains("assetbundle"))
+                    if (Path.GetExtension(assetBundlePath) != "" && Path.GetExtension(assetBundlePath).ToLower() != "assetbundle")
                     {
                         if (!AssetUtils.FakeBundles.ContainsKey(mod.ID))
                         {
                             AssetUtils.FakeBundles.Add(mod.ID, new ProxyAssetBundle());
-
                             ConsoleUtils.Log("Doki", $"Proxying asset bundle for mod ID: {mod.ID}...");
                         }
 
-                        ProxyAssetBundle proxyBundle = AssetUtils.FakeBundles[mod.ID];
-
-                        proxyBundle.Map(key, assetBundlePath);
-
+                        AssetUtils.FakeBundles[mod.ID].Map(key, assetBundlePath);
                         ConsoleUtils.Log("Doki", $"Mapping asset key: {key} to fake path -> {assetBundlePath}...");
-
                         continue;
                     }
 
                     ConsoleUtils.Log("Doki", $"Loading mod asset bundle -> {assetBundlePath}");
-
                     AssetBundle bundle = AssetUtils.LoadAssetBundle(assetBundlePath);
                     AssetUtils.AssetBundles.Add(key, bundle);
 

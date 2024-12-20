@@ -10,7 +10,6 @@ namespace Doki.Mods
     public static class DokiModsManager
     {
         public static List<DokiMod> Mods = [];
-
         public static int ActiveScriptModifierIndex = 0;
 
         public static void LoadMods()
@@ -60,9 +59,8 @@ namespace Doki.Mods
                         }
                         catch (Exception e)
                         {
-                            Console.WriteLine(e.ToString());
-
                             ConsoleUtils.Error("DokiModsManager", $"An error occurred while trying to load Doki Mod: {Path.GetFileNameWithoutExtension(file)}");
+                            throw new Exception(e.Message);
                         }
                     }
                 }
