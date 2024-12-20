@@ -1,6 +1,7 @@
 ﻿using Doki.Mods;
 using Doki.RenpyUtils;
 using HarmonyLib;
+using RenDisco;
 using RenpyParser;
 using RenPyParser.AssetManagement;
 using RenPyParser.Transforms;
@@ -43,6 +44,7 @@ namespace Doki.Extensions
                 HarmonyInstance.Patch(typeof(RenpyExecutionContext).GetMethod("InitialiseWithAudioDefines", BindingFlags.Instance | BindingFlags.NonPublic), prefix: new HarmonyMethod(typeof(PatchUtils).GetMethod("InitialiseWithAudioDefinesPatch", BindingFlags.Static | BindingFlags.NonPublic)));
                 HarmonyInstance.Patch(typeof(RenpyScript).GetMethods().Where(x => x.Name == "Init").Last(), postfix: new HarmonyMethod(typeof(PatchUtils).GetMethod("InitPatch", BindingFlags.Static | BindingFlags.NonPublic)));
                 HarmonyInstance.Patch(typeof(RenpyWindowManager).GetMethod("Say"), new HarmonyMethod(typeof(PatchUtils).GetMethod("SayPatch", BindingFlags.Static | BindingFlags.NonPublic)));
+                HarmonyInstance.Patch(typeof(Lines).GetMethod("GetValue"), prefix: new HarmonyMethod(typeof(PatchUtils).GetMethod("HistoryPatch", BindingFlags.Static | BindingFlags.NonPublic)));
 
                 foreach (var mod in DokiModsManager.Mods)
                 {
@@ -94,6 +96,25 @@ namespace Doki.Extensions
             //    if (value.Contains(".ogg") || value.Contains(".mp3") || value.Contains(".wav"))
             //        __instance.AudioDefines.Add(name, RenpyAudioData.CreateAudioData(value));
             //}
+        }
+
+        private static bool HistoryPatch(Lines __instance, string innerKey, int outerKey, ref string __result)
+        {
+            Dictionary<string, Dictionary<int, string>> lines = (Dictionary<string, Dictionary<int, string>>)__instance.GetPrivateField("lines");
+
+            var line = RenpyUtils.RenpyUtils.RetrieveLineFromText(outerKey);
+
+            if (!lines.ContainsKey(innerKey))
+                lines.Add(innerKey, new Dictionary<int, string>());
+
+            if (line != null && !lines[innerKey].ContainsKey(outerKey))
+            {
+                lines[innerKey][outerKey] = line.Text;
+
+                __instance.SetPrivateField("lines", lines);
+            }
+
+            return true;
         }
 
         private static void NextPatch(RenpyCallstackEntry __instance, Line __result)
@@ -448,15 +469,9 @@ namespace Doki.Extensions
                 return true;
 
             var line = RenpyUtils.RenpyUtils.RetrieveLineFromText(dialogueLine.TextID);
-            if (line != null)
-            {
-                dialogueLine.Text = line.Text;
 
-                //if (line.FromPlayer)
-                //    character = Renpy.CurrentContext.GetVariableString("player");
-                //else
-                //    character = line.Character;
-            }
+            if (line != null)
+                 dialogueLine.Text = line.Text;
 
             return true;
         }
