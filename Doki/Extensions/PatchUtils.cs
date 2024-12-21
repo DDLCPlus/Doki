@@ -4,6 +4,8 @@ using HarmonyLib;
 using RenDisco;
 using RenpyParser;
 using RenPyParser.AssetManagement;
+using RenPyParser.Images;
+using RenPyParser.Sprites;
 using RenPyParser.Transforms;
 using RenPyParser.VGPrompter.DataHolders;
 using SimpleExpressionEngine;
@@ -43,8 +45,8 @@ namespace Doki.Extensions
                 HarmonyInstance.Patch(typeof(MusicSource).GetMethod("InitAudioSource", BindingFlags.Instance | BindingFlags.NonPublic), prefix: new HarmonyMethod(typeof(PatchUtils).GetMethod("InitAudioSourcePatch", BindingFlags.Static | BindingFlags.NonPublic))); //If I could patch IResources.Load's implementation and have it trigger with 0Harmony, I would. I'm sorry.
                 HarmonyInstance.Patch(typeof(RenpyExecutionContext).GetMethod("InitialiseWithAudioDefines", BindingFlags.Instance | BindingFlags.NonPublic), prefix: new HarmonyMethod(typeof(PatchUtils).GetMethod("InitialiseWithAudioDefinesPatch", BindingFlags.Static | BindingFlags.NonPublic)));
                 HarmonyInstance.Patch(typeof(RenpyScript).GetMethods().Where(x => x.Name == "Init").Last(), postfix: new HarmonyMethod(typeof(PatchUtils).GetMethod("InitPatch", BindingFlags.Static | BindingFlags.NonPublic)));
-                HarmonyInstance.Patch(typeof(RenpyWindowManager).GetMethod("Say"), new HarmonyMethod(typeof(PatchUtils).GetMethod("SayPatch", BindingFlags.Static | BindingFlags.NonPublic)));
                 HarmonyInstance.Patch(typeof(Lines).GetMethod("GetValue"), prefix: new HarmonyMethod(typeof(PatchUtils).GetMethod("HistoryPatch", BindingFlags.Static | BindingFlags.NonPublic)));
+                HarmonyInstance.Patch(typeof(ActiveImage).GetMethod("ChangeAssetImmediate", BindingFlags.NonPublic | BindingFlags.Instance), postfix: new HarmonyMethod(typeof(PatchUtils).GetMethod("ChangeAssetImmediatePostPatch", BindingFlags.Static | BindingFlags.NonPublic)));
 
                 foreach (var mod in DokiModsManager.Mods)
                 {
@@ -80,21 +82,67 @@ namespace Doki.Extensions
             }
         }
 
+        private static void ChangeAssetImmediatePostPatch(ActiveImage __instance, string name, GameObject parent, bool force = false)
+        {
+            RenpyDefinition definition = RenpyUtils.RenpyUtils.CustomDefinitions.FirstOrDefault(x => x.Name == name && x.Type == DefinitionType.Image);
+
+            if (definition == null)
+                return;
+
+            if (definition.Value.StartsWith("im.Composite("))
+            {
+                var parsedCompositeValue = RenpyUtils.RenpyUtils.ParseFixedCompositeSprite(definition.Value);
+
+                GameObject compositeObject = new GameObject(name);
+
+                compositeObject.transform.SetParent(__instance.Object.transform, false);
+                compositeObject.transform.localPosition = Vector3.zero;
+                compositeObject.transform.localScale = Vector3.one;
+
+                for (int i = 0; i < parsedCompositeValue.AssetPaths.Length; i++)
+                {
+                    string assetPath = parsedCompositeValue.AssetPaths[i];
+
+                    Vector2Int offset = parsedCompositeValue.Offsets[i];
+
+                    GameObject spriteHolder = new GameObject($"Sprite {assetPath}");
+
+                    spriteHolder.transform.SetParent(compositeObject.transform, false);
+
+                    spriteHolder.transform.localPosition = new Vector3(offset.x, offset.y, 0);
+                    spriteHolder.transform.localScale = Vector3.one;
+
+                    SpriteRenderer renderer = spriteHolder.AddComponent<SpriteRenderer>();
+
+                    ProxyAssetBundle proxyBundle = AssetUtils.FindProxyBundleByAssetKey(Path.GetFileNameWithoutExtension(assetPath));
+
+                    if (proxyBundle != null)
+                    {
+                        string outPath = proxyBundle.ToPath(Path.GetFileNameWithoutExtension(assetPath));
+
+                        renderer.sprite = (Sprite)proxyBundle.Load("UnityEngine.Sprite", outPath);
+                    }
+                    else
+                    {
+                        AssetBundle realBundle = AssetUtils.AssetBundles[AssetUtils.AssetsToBundles[Path.GetFileNameWithoutExtension(assetPath)].Item2.Item1];
+
+                        if (realBundle == null)
+                            continue;
+
+                        renderer.sprite = realBundle.ForceLoadAsset<Sprite>(Path.GetFileNameWithoutExtension(assetPath));
+                    }
+
+                    ConsoleUtils.Log("PatchUtils -> ChangeAssetImmediatePostPatch", $"Sprite loaded: {renderer.sprite?.name ?? "null"}");
+                }
+            }
+        }
+
         private static void InitPatch(RenpyScript __instance, Defaults defaults, Dictionary<string, CharacterData> characters, Defaults globals, StyleDefinitions styles, Dictionary<string, Dictionary<int, string>> lines, Dictionary<string, RenpyAudioData> audio, GameObject libObject)
         {
             RenpyDefinition[] CustomCharacters = RenpyUtils.RenpyUtils.CustomDefinitions.Where(x => x.Type == DefinitionType.Character).ToArray();
+
             foreach (var customChar in RenpyUtils.RenpyUtils.Characters)
                 __instance.Characters.Add(customChar.Key, customChar.Value);
-
-            //RenpyDefinition[] CustomAudios = RenpyUtils.RenpyUtils.CustomDefinitions.Where(x => x.Type == DefinitionType.Audio).ToArray();
-            //foreach(RenpyDefinition CustomAudio in CustomAudios)
-            //{
-            //    string name = CustomAudio.Name;
-            //    string value = CustomAudio.Value;
-
-            //    if (value.Contains(".ogg") || value.Contains(".mp3") || value.Contains(".wav"))
-            //        __instance.AudioDefines.Add(name, RenpyAudioData.CreateAudioData(value));
-            //}
         }
 
         private static bool HistoryPatch(Lines __instance, string innerKey, int outerKey, ref string __result)
@@ -120,7 +168,14 @@ namespace Doki.Extensions
             CurrentLine = (int)__instance.GetPrivateField("lastLine");
 
             if (RenpyUtils.RenpyUtils.CustomVariables.TryGetValue(new Tuple<int, string>(CurrentLine, __instance.blockName), out RenpyDefinition definition))
-                Renpy.CurrentContext.SetVariableString(definition.Name, definition.Value.ToString());
+            {
+                string value = definition.Value;
+
+                if (float.TryParse(value, out float floatValue))
+                    Renpy.CurrentContext.SetVariableFloat(value, floatValue);
+                else
+                    Renpy.CurrentContext.SetVariableString(definition.Name, definition.Value.ToString());
+            }
         }
 
         private static bool InitialiseWithAudioDefinesPatch(RenpyExecutionContext __instance, AudioDefines defines)
@@ -145,28 +200,6 @@ namespace Doki.Extensions
             }
 
             __instance.SetPrivateField("m_ExecutionVariables", m_ExecutionVariables);
-            return false;
-        }
-
-        private static bool AudioDefinesPatch(AudioDefines __instance)
-        {
-            Dictionary<string, RenpyAudioData> __audioDefines = [];
-
-            for (int num = 0; num != Math.Min(__instance.audioKeys.Count, __instance.audioValues.Count); num++)
-            {
-                __audioDefines.Add(__instance.audioKeys[num], __instance.audioValues[num]);
-            }
-
-            foreach (RenpyDefinition renpyDefinition in RenpyUtils.RenpyUtils.CustomDefinitions)
-            {
-                string name = renpyDefinition.Name;
-                string value = renpyDefinition.Value;
-
-                if (value.Contains(".ogg") || value.Contains(".mp3") || value.Contains(".wav"))
-                    __audioDefines.Add(name, RenpyAudioData.CreateAudioData(value));
-            }
-
-            __instance.SetPrivateField("__audioDefines", __audioDefines);
             return false;
         }
 
@@ -295,21 +328,44 @@ namespace Doki.Extensions
                     ConsoleUtils.Log("Doki", $"Block processed -> {block.Key}");
                 }
 
-                RenpyDefinition[] backgroundDefinitions = RenpyUtils.RenpyUtils.CustomDefinitions.Where(x => x.Type == DefinitionType.Image && x.Name.StartsWith("bg ")).ToArray();
-                foreach (var backgroundDefinition in backgroundDefinitions)
-                {
-                    string labelThatCalls = backgroundDefinition.Name; //the label just -> call label that loads image file -> sizes -> in this case bg bg_test2
-                    string prefabForBackground = backgroundDefinition.Value.Split('/')[0]; //prefab name for game obj with bg -> in this case bg_test_original.prefab aka bg_test_original
-                    string imageFile = backgroundDefinition.Value.Split('/')[1]; //image file -> in this case bg_test2.png
+                RenpyDefinition[] imageDefinitions = RenpyUtils.RenpyUtils.CustomDefinitions.Where(x => x.Type == DefinitionType.Image).ToArray();
 
-                    if (!__blockEntryPoints.ContainsKey(labelThatCalls))
+                foreach (var imageDefinition in imageDefinitions)
+                {
+                    bool isBackgroundDefinition = imageDefinition.Name.StartsWith("bg ");
+
+                    if (isBackgroundDefinition)
                     {
-                        __blockEntryPoints.Add(labelThatCalls, new BlockEntryPoint(labelThatCalls));
-                        __blocks.Add(labelThatCalls, new RenpyBlock(labelThatCalls)
+                        var backgroundDefinition = imageDefinition; //im lazy
+
+                        string labelThatCalls = backgroundDefinition.Name; //the label just -> call label that loads image file -> sizes -> in this case bg bg_test2
+                        string prefabForBackground = backgroundDefinition.Value.Split('/')[0]; //prefab name for game obj with bg -> in this case bg_test_original.prefab aka bg_test_original
+                        string imageFile = backgroundDefinition.Value.Split('/')[1]; //image file -> in this case bg_test2.png
+
+                        if (!__blockEntryPoints.ContainsKey(labelThatCalls))
                         {
-                            callParameters = [],
-                            Contents = [new RenpyLoadImage(prefabForBackground, imageFile), AssetUtils.CreateSize(1280, 720)]
-                        });
+                            __blockEntryPoints.Add(labelThatCalls, new BlockEntryPoint(labelThatCalls));
+                            __blocks.Add(labelThatCalls, new RenpyBlock(labelThatCalls)
+                            {
+                                callParameters = [],
+                                Contents = [new RenpyLoadImage(prefabForBackground, imageFile), AssetUtils.CreateSize(1280, 720)]
+                            });
+                        }
+                    }
+                    else
+                    {
+                        string imageBlockName = imageDefinition.Name;
+                        string val = imageDefinition.Value;
+
+                        if (!__blockEntryPoints.ContainsKey(imageBlockName))
+                        {
+                            __blockEntryPoints.Add(imageBlockName, new BlockEntryPoint(imageBlockName));
+                            __blocks.Add(imageBlockName, new RenpyBlock(imageBlockName)
+                            {
+                                callParameters = [],
+                                Contents = [new RenpyLoadImage(imageBlockName, val)]
+                            });
+                        }
                     }
                 }
 
@@ -352,7 +408,7 @@ namespace Doki.Extensions
 
         private static void ResolveLabelPatchAfter(ref RenpyScript __instance, ref ValueTuple<RenpyBlock, int> __result, ref string label)
         {
-            if (__result.Item1.Label.Contains("bg"))
+            if (__result.Item1.Label.Contains("natsuki") || __result.Item1.Label.Contains("bg") || __result.Item1.Label.Contains("t11"))
             {
                 RenpyUtils.RenpyUtils.DumpBlock(__result.Item1);
                 ConsoleUtils.Debug("Doki", $"Resolved normal label -> {label}");
@@ -369,7 +425,7 @@ namespace Doki.Extensions
         {
             ConsoleUtils.Debug("Doki", $"Tried to resolve normal label -> {label}");
 
-            if (label.Contains("bg"))
+            if (label.Contains("bg") || label.Contains("natsuki") || label.Contains("t11"))
                 RenpyUtils.RenpyUtils.DumpBlock(tuple.Item1);
         }
 
@@ -493,19 +549,6 @@ namespace Doki.Extensions
             }
 
             return false;
-        }
-
-        private static bool SayPatch(string tag, string character, DialogueLine dialogueLine)
-        {
-            if (DokiModsManager.ActiveScriptModifierIndex == -1)
-                return true;
-
-            var line = RenpyUtils.RenpyUtils.RetrieveLineFromText(dialogueLine.TextID);
-
-            if (line != null)
-                 dialogueLine.Text = line.Text;
-
-            return true;
         }
     }
 }

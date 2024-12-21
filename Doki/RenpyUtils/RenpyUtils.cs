@@ -9,6 +9,8 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text.RegularExpressions;
+using UnityEngine;
+using static RenPyParser.Sprites.CompositeSpriteParser;
 using Dialogue = Doki.Extensions.Dialogue;
 
 namespace Doki.RenpyUtils
@@ -121,6 +123,68 @@ THE SOFTWARE.
             return null;
         }
 
+        public static FixedCompositeSprite ParseFixedCompositeSprite(string input)
+        {
+            if (string.IsNullOrEmpty(input))
+                ConsoleUtils.Error("ParseFixedCompositeSprite", new ArgumentException("Input cannot be null or empty."));
+
+            if (!input.StartsWith("im.Composite"))
+                ConsoleUtils.Error("ParseFixedCompositeSprite", new FormatException("Input must start with 'im.Composite'."));
+
+            int startIndex = input.IndexOf("(") + 1;
+            int endIndex = input.LastIndexOf(")");
+            int height = 0;
+            int width, offsetX, offsetY = -1;
+
+            if (startIndex <= 0 || endIndex <= startIndex)
+                ConsoleUtils.Error("ParseFixedCompositeSprite", new FormatException("Invalid format: parentheses mismatch or missing."));
+
+            string content = input.Substring(startIndex, endIndex - startIndex);
+
+            string[] parts = content.Split(',');
+
+            if (parts.Length < 3 || (parts.Length - 2) % 3 != 0)
+                ConsoleUtils.Error("ParseFixedCompositeSprite", new FormatException("Invalid format: insufficient parts or malformed data."));
+
+            if (!int.TryParse(parts[0].Trim('(', ')', ' '), out width) || !int.TryParse(parts[1].Trim('(', ')', ' '), out height))
+                ConsoleUtils.Error("ParseFixedCompositeSprite", new FormatException("Invalid format: size values must be integers."));
+
+            Vector2Int size = new Vector2Int(width, height);
+
+            int assetCount = (parts.Length - 2) / 3;
+
+            Vector2Int[] offsets = new Vector2Int[assetCount];
+
+            string[] assetPaths = new string[assetCount];
+
+            for (int i = 0; i < assetCount; i++)
+            {
+                int baseIndex = 2 + i * 3;
+
+                string offsetPartX = parts[baseIndex].Trim('(', ')', ' ');
+                string offsetPartY = parts[baseIndex + 1].Trim('(', ')', ' ');
+
+                if (!int.TryParse(offsetPartX, out offsetX) || !int.TryParse(offsetPartY, out offsetY))
+                    ConsoleUtils.Error("ParseFixedCompositeSprite", new FormatException($"Invalid format: offset values must be integers for asset {i + 1}."));
+
+                offsets[i] = new Vector2Int(offsetX, offsetY);
+
+                string assetPath = parts[baseIndex + 2].Trim(' ', '"');
+
+                if (!assetPath.StartsWith("gui/") && !assetPath.StartsWith("images/"))
+                    assetPath = "images/" + assetPath;
+
+                assetPaths[i] = assetPath;
+            }
+
+            return new FixedCompositeSprite
+            {
+                Size = size,
+                Offsets = offsets,
+                AssetPaths = assetPaths
+            };
+        }
+
         public static void DumpBlock(RenpyBlock block)
         {
             string output = $"label {block.Label}:\n";
@@ -145,7 +209,7 @@ THE SOFTWARE.
                             (show.HasZOrder ? $" zorder {show.ZOrder}" : "")}\n";
                         break;
                     case RenpyLoadImage loadImage:
-                        output += $"image bg {loadImage.key} = \"{loadImage.fullImageDetails}\"\n";
+                        output += $"image {loadImage.key} = \"{loadImage.fullImageDetails}\"\n";
                         break;
                     case RenpyHide hide:
                         output += $"{hide.HideData}\n";
@@ -341,7 +405,7 @@ THE SOFTWARE.
             return retShow;
         }
 
-        public static Line HandleDialogue(string label, string text, bool includeQuotes, bool allowSkip, string character_tag, string command_type = "say", bool glitch_text = false)
+        public static Line HandleDialogue(string label, string text, bool allowSkip, string character_tag, string command_type = "say", bool glitch_text = false)
         {
             RenpyDefinition characterDefinition = CustomDefinitions.FirstOrDefault(x => x.Name == character_tag && x.Type == DefinitionType.Character);
 
@@ -351,7 +415,7 @@ THE SOFTWARE.
             if (Characters.ContainsKey(character_tag))
                 character_tag = Characters[character_tag].name;
 
-            return MakeDialogueLine(label, text, includeQuotes, allowSkip, character_tag, command_type, glitch_text);
+            return MakeDialogueLine(label, text, allowSkip, character_tag, command_type, glitch_text);
         }
 
         public static RenpyBlock Translate(string label, List<RenpyCommand> commandsPassed)
@@ -368,7 +432,7 @@ THE SOFTWARE.
                 switch (command)
                 {
                     case RenDisco.Dialogue dialogue:
-                        Lines.Add(HandleDialogue(label, dialogue.Text, true, false, dialogue.Character, "say", false));
+                        Lines.Add(HandleDialogue(label, dialogue.Text, false, dialogue.Character, "say", false));
                         break;
                     case RenDisco.Hide hide:
                         Lines.Add(new RenpyHide()
@@ -405,7 +469,7 @@ THE SOFTWARE.
                         Lines.Add(new RenpyPause(pause.Raw, SimpleExpressionEngine.Parser.Compile(pause.Raw)));
                         break;
                     case Narration narration:
-                        Lines.Add(MakeDialogueLine(label, narration.Text, false, false, "", "menu-with-caption", false));
+                        Lines.Add(MakeDialogueLine(label, narration.Text, false, "", "menu-with-caption", false));
                         break;
                     case RenDisco.Image image:
                         CustomDefinitions.Add(new RenpyDefinition(image.Name, image.Value.Replace("\"", ""), DefinitionType.Image));
@@ -433,9 +497,9 @@ THE SOFTWARE.
             return renpyBlock;
         }
 
-        public static Line MakeDialogueLine(string label, string speech, bool quotes = true, bool skipWait = false, string who = "mc", string command_type = "say", bool glitch = false)
+        public static Line MakeDialogueLine(string label, string speech, bool skipWait = false, string who = "mc", string command_type = "say", bool glitch = false)
         {
-            var line = new Dialogue(label, who, quotes ? $"\"{speech}\"" : speech, skipWait, glitch, who == "mc" || who == "player", command_type);
+            var line = new Dialogue(label, who, speech, skipWait, glitch, who == "mc" || who == "player", command_type);
 
             CustomDialogue.Add(line);
             CustomTextIDs.Add(line.TextID);

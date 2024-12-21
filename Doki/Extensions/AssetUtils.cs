@@ -99,13 +99,7 @@ namespace Doki.Extensions
         {
             foreach(var proxyBundle in FakeBundles)
             {
-                var name = proxyBundle.Key;
                 var bundle = proxyBundle.Value;
-
-                //foreach(var entry in bundle.AssetsMap)
-                //{
-                //    Console.WriteLine(entry.Key + " - value: " + entry.Value);
-                //}
 
                 if (bundle.Exists(key))
                     return bundle;
