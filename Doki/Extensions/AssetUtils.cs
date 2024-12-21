@@ -69,10 +69,7 @@ namespace Doki.Extensions
             AssetBundle assetBundle = AssetBundle.LoadFromStream(new XorFileStream(text, FileMode.Open, FileAccess.Read));
 
             if (assetBundle == null)
-            {
-                ConsoleUtils.Error("Doki", $"Trying to load an asset bundle that doesn't exist: {text}");
-                throw new InvalidOperationException($"Trying to load an asset bundle that doesn't exist: {text}");
-            }
+                ConsoleUtils.Error("Doki", new InvalidOperationException($"Trying to load an asset bundle that doesn't exist: {text}"));
 
             return assetBundle;
         }

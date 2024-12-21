@@ -433,14 +433,9 @@ THE SOFTWARE.
             return renpyBlock;
         }
 
-        public static Line MakeDialogueLine(string label, string what, bool quotes = true, bool skipWait = false, string who = "mc", string command_type = "say", bool glitch = false)
+        public static Line MakeDialogueLine(string label, string speech, bool quotes = true, bool skipWait = false, string who = "mc", string command_type = "say", bool glitch = false)
         {
-            string text = what;
-
-            if (quotes)
-                text = $"\"{text}\"";
-
-            var line = new Dialogue(label, who, text, skipWait, glitch, who == "mc" || who == "player", command_type);
+            var line = new Dialogue(label, who, quotes ? $"\"{speech}\"" : speech, skipWait, glitch, who == "mc" || who == "player", command_type);
 
             CustomDialogue.Add(line);
             CustomTextIDs.Add(line.TextID);

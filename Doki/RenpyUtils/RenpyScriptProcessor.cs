@@ -29,10 +29,7 @@ namespace Doki.RenpyUtils
 
             int[] beginningIndexes = Commands.Where(x => x.Type == "label").Select(x => Commands.IndexOf(x)).ToArray();
             if (beginningIndexes.Length == 0)
-            {
-                ConsoleUtils.Error("RenpyUtils", "Failed to convert DDLCScript to blocks -> RenDisco reported no labels for this script");
-                throw new Exception("Failed to convert DDLCScript to blocks -> RenDisco reported no labels for this script");
-            }
+                ConsoleUtils.Error("RenpyUtils", new InvalidOperationException("Failed to convert DDLCScript to blocks -> RenDisco reported no labels for this script"));
 
             for (int i = 0; i < beginningIndexes.Length; i++)
             {

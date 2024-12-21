@@ -65,13 +65,14 @@ namespace Doki.Extensions
             ]);
         }
 
-        public static void Error(string moduleName, string text)
+        public static void Error(string moduleName, Exception exception, string overrideMessage = null)
         {
             ColourWrite([
                 new ColouredText($"[Error] ", ConsoleColor.Red),
                 new ColouredText($"({DateTime.Now.ToShortTimeString()}) ", ConsoleColor.Gray),
                 new ColouredText($"{moduleName}", ConsoleColor.Magenta),
-                new ColouredText($": {text}\n", ConsoleColor.Red)
+                new ColouredText($": [{exception.GetType().Name}] {(overrideMessage != null ? overrideMessage : exception.Message)}\n", ConsoleColor.Red),
+                new ColouredText($"Stack trace: {exception.StackTrace}", ConsoleColor.Gray)
             ]);
         }
 

@@ -71,7 +71,7 @@ namespace Doki.Extensions
             }
             catch (Exception e)
             {
-                ConsoleUtils.Error("Doki", $"Failed to patch: {e}");
+                ConsoleUtils.Error("Doki", new InvalidOperationException($"Failed to patch: {e}"));
             }
             finally
             {
@@ -83,11 +83,10 @@ namespace Doki.Extensions
         private static void InitPatch(RenpyScript __instance, Defaults defaults, Dictionary<string, CharacterData> characters, Defaults globals, StyleDefinitions styles, Dictionary<string, Dictionary<int, string>> lines, Dictionary<string, RenpyAudioData> audio, GameObject libObject)
         {
             RenpyDefinition[] CustomCharacters = RenpyUtils.RenpyUtils.CustomDefinitions.Where(x => x.Type == DefinitionType.Character).ToArray();
-            //RenpyDefinition[] CustomAudios = RenpyUtils.RenpyUtils.CustomDefinitions.Where(x => x.Type == DefinitionType.Audio).ToArray();
-
             foreach (var customChar in RenpyUtils.RenpyUtils.Characters)
                 __instance.Characters.Add(customChar.Key, customChar.Value);
 
+            //RenpyDefinition[] CustomAudios = RenpyUtils.RenpyUtils.CustomDefinitions.Where(x => x.Type == DefinitionType.Audio).ToArray();
             //foreach(RenpyDefinition CustomAudio in CustomAudios)
             //{
             //    string name = CustomAudio.Name;
@@ -110,7 +109,6 @@ namespace Doki.Extensions
             if (line != null && !lines[innerKey].ContainsKey(outerKey))
             {
                 lines[innerKey][outerKey] = line.Text;
-
                 __instance.SetPrivateField("lines", lines);
             }
 
@@ -190,7 +188,6 @@ namespace Doki.Extensions
                 foreach (var asset in bundleVal.GetAllAssetNames())
                 {
                     // assetKey -> bundleName -> assetFullPathInBundle
-
                     string assetKey = Path.GetFileNameWithoutExtension(asset);
                     AssetUtils.AssetsToBundles[assetKey] = new Tuple<string, Tuple<string, bool>>(key, new Tuple<string, bool>(asset, true));
 
@@ -205,16 +202,12 @@ namespace Doki.Extensions
         private static bool ImmediatePatch(RenpyLoadImage __instance, GameObject gameObject, CurrentTransform currentTransform, string key)
         {
             GameObject outObj = null;
-
             ProxyAssetBundle proxyBundle = AssetUtils.FindProxyBundleByAssetKey(key);
-
             bool overrideTransform = false;
 
             if (proxyBundle != null)
             {
-                string outPath = proxyBundle.ToPath(key);
-
-                outObj = (GameObject)proxyBundle.Load("UnityEngine.GameObject", outPath);
+                outObj = (GameObject)proxyBundle.Load("UnityEngine.GameObject", proxyBundle.ToPath(key));
                 overrideTransform = true;
             }
 
@@ -222,8 +215,8 @@ namespace Doki.Extensions
                 outObj = AssetUtils.FixLoad(key);
 
             gameObject.DestroyChildIfOnlyChild();
-
             GameObject gameObject2 = UnityEngine.Object.Instantiate(outObj, gameObject.transform, false);
+            gameObject2.name = key;
 
             if (key.Contains("poem_special") || key.Contains("poem_end"))
             {
@@ -239,8 +232,6 @@ namespace Doki.Extensions
                 string languageKey2 = $"bsod_{Renpy.GetCurrentLanguagePrefix()}";
                 typeof(RenpyLoadImage).GetMethod("ReplaceSprite", BindingFlags.NonPublic | BindingFlags.Static).Invoke(__instance, [gameObject2, languageKey2]);
             }
-
-            gameObject2.name = key;
 
             if (!overrideTransform)
                 ApplyTransformData.Apply(gameObject, currentTransform, false);
@@ -259,15 +250,11 @@ namespace Doki.Extensions
         private static bool LoadPatch(AssetBundle __instance, string name, Type type, ref object __result)
         {
             string shortenedName = Path.GetFileNameWithoutExtension(name);
-
             ProxyAssetBundle proxyBundle = AssetUtils.FindProxyBundleByAssetKey(shortenedName);
 
             if (proxyBundle != null)
             {
-                string outPath = proxyBundle.ToPath(shortenedName);
-
-                __result = proxyBundle.Load(type.ToString(), outPath);
-
+                __result = proxyBundle.Load(type.ToString(), proxyBundle.ToPath(shortenedName));
                 return false;
             }
 
@@ -277,8 +264,7 @@ namespace Doki.Extensions
             if (name != "select" && name != "hover" && name != "frame")
                ConsoleUtils.Debug("Doki", $"Trying to force load -> {name} as type: {type}");
 
-            //Yes, I know I have an instance to the AssetBundle but shit will fucking crash if I use it.
-
+            // Yes, I know I have an instance to the AssetBundle but shit will fucking crash if I use it.
             AssetBundle realInstance = AssetUtils.AssetBundles[__instance.name];
             __result = realInstance.ForceLoadAsset(name, type);
 
@@ -310,7 +296,6 @@ namespace Doki.Extensions
                 }
 
                 RenpyDefinition[] backgroundDefinitions = RenpyUtils.RenpyUtils.CustomDefinitions.Where(x => x.Type == DefinitionType.Image && x.Name.StartsWith("bg ")).ToArray();
-
                 foreach (var backgroundDefinition in backgroundDefinitions)
                 {
                     string labelThatCalls = backgroundDefinition.Name; //the label just -> call label that loads image file -> sizes -> in this case bg bg_test2
@@ -320,7 +305,6 @@ namespace Doki.Extensions
                     if (!__blockEntryPoints.ContainsKey(labelThatCalls))
                     {
                         __blockEntryPoints.Add(labelThatCalls, new BlockEntryPoint(labelThatCalls));
-
                         __blocks.Add(labelThatCalls, new RenpyBlock(labelThatCalls)
                         {
                             callParameters = [],
@@ -348,7 +332,7 @@ namespace Doki.Extensions
             }
             catch(Exception e)
             {
-                ConsoleUtils.Log("Doki", $"Failed to override Blocks deserialization! -> {e.StackTrace}");
+                ConsoleUtils.Error("Doki", e, "Failed to override Blocks deserialization!");
             }
         }
 
@@ -406,6 +390,7 @@ namespace Doki.Extensions
             if (index >= musicSources.Length)
                 index = 0;
 
+            AudioClip audioClip = null;
             AudioSource audioSource = musicSources[index];
             object musicDataInstance = ((Array)musicDataArray).GetValue(index);
 
@@ -414,21 +399,16 @@ namespace Doki.Extensions
 
             object nextMusicData = ((Array)musicDataArray).GetValue(queueIndex);
 
-            AudioClip audioClip = null;
-
             ProxyAssetBundle proxyBundle = AssetUtils.FindProxyBundleByAssetKey(audioData.simpleAssetName);
-
             if (proxyBundle != null)
             {
                 string outPath = proxyBundle.ToPath(audioData.simpleAssetName);
-
                 audioClip = (AudioClip)proxyBundle.Load("UnityEngine.AudioClip", outPath);
             }
 
             if (audioClip == null)
             {
                 AssetBundle foundBundle = AssetUtils.GetPreciseAudioRelatedBundle(audioData.simpleAssetName);
-
                 if (foundBundle == null)
                     return true;
 

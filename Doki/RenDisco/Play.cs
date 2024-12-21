@@ -5,16 +5,11 @@ namespace RenDisco
 {
     public class Play
     {
-        // The current parent
-        private readonly Play? _parent;
-        // The current runtime
-        private readonly IRuntimeEngine _runtime;
-        // The current child
-        private Play? _child = null;
-        // If we've been jumped - will mean once the child is done, we end the play
-        private bool _jumped;
-        // If this current Play is waiting for input
-        private bool _waitingForInput;
+        private readonly Play? _parent; // The current parent
+        private readonly IRuntimeEngine _runtime; // The current runtime
+        private Play? _child = null; // The current child
+        private bool _jumped; // If we've been jumped - will mean once the child is done, we end the play
+        private bool _waitingForInput; // If this current Play is waiting for input
 
         public List<RenpyCommand> Commands;
         public int ProgramCounter { get; set; }

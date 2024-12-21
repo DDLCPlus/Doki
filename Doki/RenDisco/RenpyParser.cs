@@ -20,9 +20,7 @@ namespace RenDisco
         /// <returns>A list of RenpyCommand objects representing the script.</returns>
         public List<RenpyCommand> ParseFromFile(string filePath)
         {
-            string rpyCode = File.ReadAllText(filePath);
-
-            return Parse(rpyCode);
+            return Parse(File.ReadAllText(filePath));
         }
 
         /// <summary>
@@ -47,11 +45,8 @@ namespace RenDisco
             // Process each line in the script
             foreach (string line in lines)
             {
-
                 // Calculate indentation level and remove leading whitespace
                 string trimmedLine = line.TrimStart();
-                
-
                 int rawIndentationLevel = line.Length - trimmedLine.Length;
 
                 // Ignore empty and comment lines outside of multiline strings
@@ -67,10 +62,9 @@ namespace RenDisco
                 AdjustActiveScope(scopeStack, indentationLevel);
 
                 // Process potential multiline strings and adjust scope if needed
-                if (insideMultilineString)
+                if (insideMultilineString && ProcessMultilineString(line, multilineCharacter, ref insideMultilineString, ref multiLineStringAccumulator, scopeStack.Peek()))
                 {
-                    if (ProcessMultilineString(line, multilineCharacter, ref insideMultilineString, ref multiLineStringAccumulator, scopeStack.Peek()))
-                        continue;
+                    continue;
                 }
 
                 if (ProcessMultilineStringStart(trimmedLine, ref multilineCharacter, ref insideMultilineString, ref multiLineStringAccumulator))
@@ -178,47 +172,30 @@ namespace RenDisco
             foreach (string keyword in new[] { "if", "elif", "define" })
             {
                 if (trimmedExpressionText.StartsWith(keyword))
-                {
                     return new KeywordExpression { Keyword = keyword };
-                }
             }
 
             // Check for a string literal or number literal
             if (trimmedExpressionText.StartsWith("\"") || trimmedExpressionText.StartsWith("'''"))
-            {
                 return ParseStringLiteralExpression(trimmedExpressionText);
-            }
-
             // Handle param list expressions
-            if (trimmedExpressionText.StartsWith("(") && trimmedExpressionText.EndsWith(")"))
-            {
+            else if (trimmedExpressionText.StartsWith("(") && trimmedExpressionText.EndsWith(")"))
                 return ParseParamListExpression(trimmedExpressionText);
-            }
-
             // Handle method expressions
-            if (Regex.IsMatch(trimmedExpressionText, @"\w+\s*\("))
-            {
+            else if (Regex.IsMatch(trimmedExpressionText, @"\w+\s*\("))
                 return ParseMethodExpression(trimmedExpressionText);
-            }
-
             // Check for non-literal values
-            if (char.IsLetter(trimmedExpressionText[0]))
-            {
+            else if (char.IsLetter(trimmedExpressionText[0]))
                 return ParseNonLiteralExpression(trimmedExpressionText);
-            }
-
-            throw new ArgumentException($"Unknown expression type encountered: {expressionText}");
+            else
+                throw new ArgumentException($"Unknown expression type encountered: {expressionText}");
         }
 
-        private static StringLiteralExpression ParseStringLiteralExpression(string expressionText)
-        {
-            return new StringLiteralExpression { Value = expressionText.Trim('\"', '\'') };
-        }
+        private static StringLiteralExpression ParseStringLiteralExpression(string expressionText) =>
+            new StringLiteralExpression { Value = expressionText.Trim('\"', '\'') };
 
-        private static NonLiteralExpression ParseNonLiteralExpression(string expressionText)
-        {
-            return new NonLiteralExpression { Value = expressionText };
-        }
+        private static NonLiteralExpression ParseNonLiteralExpression(string expressionText) =>
+            new NonLiteralExpression { Value = expressionText };
 
         private static ParamListExpression ParseParamListExpression(string expressionText)
         {
@@ -229,18 +206,11 @@ namespace RenDisco
             foreach (var element in paramElements)
             {
                 string[] nameValue = element.Split('=');
-                if (nameValue.Length == 2)
+                paramPairs.Add(new ParamPairExpression
                 {
-                    paramPairs.Add(new ParamPairExpression
-                    {
-                        ParamName = nameValue[0].Trim(),
-                        ParamValue = ParseExpression(nameValue[1])
-                    });
-                }
-                else
-                {
-                    paramPairs.Add(new ParamPairExpression { ParamValue = ParseExpression(nameValue[0]) });
-                }
+                    ParamName = nameValue.Length == 2 ? nameValue[0].Trim() : null,
+                    ParamValue = nameValue.Length == 2 ? ParseExpression(nameValue[1]) : ParseExpression(nameValue[0])
+                });
             }
 
             return new ParamListExpression { Params = paramPairs };
@@ -254,8 +224,7 @@ namespace RenDisco
                 if (methodMatch.Success && methodMatch.Groups.Count == 3)
                 {
                     string methodName = methodMatch.Groups[1].Value;
-                    string paramListText = methodMatch.Groups[2].Value;
-                    var paramListExpression = ParseParamListExpression(paramListText);
+                    var paramListExpression = ParseParamListExpression(methodMatch.Groups[2].Value);
 
                     return new MethodExpression
                     {
@@ -299,10 +268,9 @@ namespace RenDisco
             {
                 string[] parts = trimmedLine.Split([' '], StringSplitOptions.RemoveEmptyEntries);
                 var scene = new Scene { Image = parts[1], Raw = trimmedLine };
+
                 if (parts.Length > 2 && parts[2] == "with")
-                {
                     scene.Transition = parts[3];
-                }
 
                 currentScope.Commands.Add(scene);
                 return true;
@@ -337,7 +305,6 @@ namespace RenDisco
             if (trimmedLine.StartsWith("image "))
             {
                 string content = ExtractAfter(trimmedLine, "image ").Trim();
-
                 int equalsIndex = content.IndexOf('=');
 
                 if (equalsIndex > 0)
@@ -363,17 +330,14 @@ namespace RenDisco
         {
             if (trimmedLine.StartsWith("with "))
             {
-                string content = ExtractAfter(trimmedLine, "with ").Trim();
-
                 currentScope.Commands.Add(new With
                 {
-                    Transition = content,
+                    Transition = ExtractAfter(trimmedLine, "with ").Trim(),
                     Raw = trimmedLine
                 });
 
                 return true;
             }
-
             return false;
         }
 
@@ -393,7 +357,6 @@ namespace RenDisco
                 currentScope.Commands.Add(defineCmd);
                 return true;
             }
-
             return false;
         }
 
@@ -612,7 +575,6 @@ namespace RenDisco
             if (trimmedLine.StartsWith("return"))
             {
                 currentScope.Commands.Add(new Return());
-
                 return true;
             }
 

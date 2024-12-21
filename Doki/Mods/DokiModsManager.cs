@@ -37,7 +37,7 @@ namespace Doki.Mods
 
                             if (types.Count() == 0)
                             {
-                                ConsoleUtils.Error("DokiModsManager", $"An error occurred while trying to load Doki Mod: {Path.GetFileNameWithoutExtension(file)} -> There was no DokiMod subclass.");
+                                ConsoleUtils.Error("DokiModsManager", new InvalidOperationException($"An error occurred while trying to load Doki Mod: {Path.GetFileNameWithoutExtension(file)} -> There was no DokiMod subclass."));
                                 continue;
                             }
 
@@ -59,8 +59,7 @@ namespace Doki.Mods
                         }
                         catch (Exception e)
                         {
-                            ConsoleUtils.Error("DokiModsManager", $"An error occurred while trying to load Doki Mod: {Path.GetFileNameWithoutExtension(file)}");
-                            throw new Exception(e.Message);
+                            ConsoleUtils.Error("DokiModsManager", e, $"An error occurred while trying to load Doki Mod: {Path.GetFileNameWithoutExtension(file)}");
                         }
                     }
                 }
