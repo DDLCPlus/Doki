@@ -50,21 +50,6 @@ namespace Doki.Extensions
             return bundle;
         }
 
-        public static object LoadFromProxyBundle(string path, string type)
-        {
-            object __result = null;
-
-            switch (type)
-            {
-                case "UnityEngine.AudioClip":
-                    UnityWebRequest request = UnityWebRequestMultimedia.GetAudioClip(path, path.Contains(".ogg") ? AudioType.OGGVORBIS : AudioType.MPEG);
-                    request.SendWebRequest().completed += _ => __result = DownloadHandlerAudioClip.GetContent(request);
-                    break;
-            }
-
-            return __result;
-        }
-
         public static T ForceLoadAsset<T>(this AssetBundle bundle, string name) where T : UnityEngine.Object =>
             (T)loadAssetInternal.Invoke(bundle, [name, typeof(T)]);
 
@@ -111,6 +96,25 @@ namespace Doki.Extensions
             sizeYProperty?.SetValue(ret, height); // I had no clue this existed this is fucking cool
 
             return ret;
+        }
+
+        public static ProxyAssetBundle FindProxyBundleByAssetKey(string key)
+        {
+            foreach(var proxyBundle in FakeBundles)
+            {
+                var name = proxyBundle.Key;
+                var bundle = proxyBundle.Value;
+
+                //foreach(var entry in bundle.AssetsMap)
+                //{
+                //    Console.WriteLine(entry.Key + " - value: " + entry.Value);
+                //}
+
+                if (bundle.Exists(key))
+                    return bundle;
+            }
+
+            return null;
         }
 
         public static AssetBundle GetPreciseAudioRelatedBundle(string assetKey)

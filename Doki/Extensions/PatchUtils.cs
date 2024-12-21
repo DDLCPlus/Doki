@@ -204,8 +204,26 @@ namespace Doki.Extensions
 
         private static bool ImmediatePatch(RenpyLoadImage __instance, GameObject gameObject, CurrentTransform currentTransform, string key)
         {
+            GameObject outObj = null;
+
+            ProxyAssetBundle proxyBundle = AssetUtils.FindProxyBundleByAssetKey(key);
+
+            bool overrideTransform = false;
+
+            if (proxyBundle != null)
+            {
+                string outPath = proxyBundle.ToPath(key);
+
+                outObj = (GameObject)proxyBundle.Load("UnityEngine.GameObject", outPath);
+                overrideTransform = true;
+            }
+
+            if (outObj == null)
+                outObj = AssetUtils.FixLoad(key);
+
             gameObject.DestroyChildIfOnlyChild();
-            GameObject gameObject2 = UnityEngine.Object.Instantiate(AssetUtils.FixLoad(key), gameObject.transform, false);
+
+            GameObject gameObject2 = UnityEngine.Object.Instantiate(outObj, gameObject.transform, false);
 
             if (key.Contains("poem_special") || key.Contains("poem_end"))
             {
@@ -223,97 +241,115 @@ namespace Doki.Extensions
             }
 
             gameObject2.name = key;
-            ApplyTransformData.Apply(gameObject, currentTransform, false);
+
+            if (!overrideTransform)
+                ApplyTransformData.Apply(gameObject, currentTransform, false);
+            else
+            {
+                gameObject2.transform.position = new Vector3(0, 0, 0);
+                gameObject2.transform.localPosition = new Vector3(0, -360, 0);
+
+                gameObject2.SetActive(true);
+                gameObject2.transform.parent.gameObject.SetActive(true); //why the fuck is this not active by default?
+            }
+
             return false;
         }
 
         private static bool LoadPatch(AssetBundle __instance, string name, Type type, ref object __result)
         {
-            //ProxyAssetBundle ProxyBundle = AssetUtils.FakeBundles.Values.FirstOrDefault(x => x.FakeInstance == __instance);
+            string shortenedName = Path.GetFileNameWithoutExtension(name);
 
-            //if (ProxyBundle == null)
-            //{
-                if (!AssetUtils.AssetBundles.ContainsKey(__instance.name))
-                    return true;
+            ProxyAssetBundle proxyBundle = AssetUtils.FindProxyBundleByAssetKey(shortenedName);
 
-                if (name != "select" && name != "hover" && name != "frame")
-                    ConsoleUtils.Debug("Doki", $"Trying to force load -> {name} as type: {type}");
+            if (proxyBundle != null)
+            {
+                string outPath = proxyBundle.ToPath(shortenedName);
 
-                //Yes, I know I have an instance to the AssetBundle but shit will fucking crash if I use it.
+                __result = proxyBundle.Load(type.ToString(), outPath);
 
-                AssetBundle realInstance = AssetUtils.AssetBundles[__instance.name];
-                __result = realInstance.ForceLoadAsset(name, type);
+                return false;
+            }
 
-            //}
+            if (!AssetUtils.AssetBundles.ContainsKey(__instance.name))
+               return true;
 
-            //string shortenedName = Path.GetFileNameWithoutExtension(name);
+            if (name != "select" && name != "hover" && name != "frame")
+               ConsoleUtils.Debug("Doki", $"Trying to force load -> {name} as type: {type}");
 
-            //if (!ProxyBundle.Exists(shortenedName))
-            //    return true; //??
+            //Yes, I know I have an instance to the AssetBundle but shit will fucking crash if I use it.
 
-            //string outPath = ProxyBundle.ToPath(shortenedName);
-
-            //__result = AssetUtils.LoadFromProxyBundle(outPath, type.ToString());
+            AssetBundle realInstance = AssetUtils.AssetBundles[__instance.name];
+            __result = realInstance.ForceLoadAsset(name, type);
 
             return false;
         }
 
         private static void ScriptExecutionPatch(ref Blocks __instance)
         {
-            var __blocks = (Dictionary<string, RenpyBlock>)__instance.GetPrivateField("blocks");
-            var __blockEntryPoints = (Dictionary<string, BlockEntryPoint>)__instance.GetPrivateField("blockEntryPoints");
-
-            foreach (var block in RenpyScriptProcessor.BlocksDict)
+            try
             {
-                string label = block.Key;
-                Tuple<BlockEntryPoint, RenpyBlock> brick = block.Value;
+                var __blocks = (Dictionary<string, RenpyBlock>)__instance.GetPrivateField("blocks");
+                var __blockEntryPoints = (Dictionary<string, BlockEntryPoint>)__instance.GetPrivateField("blockEntryPoints");
 
-                if (__blocks.TryGetValue(label, out RenpyBlock _))
+                foreach (var block in RenpyScriptProcessor.BlocksDict)
                 {
-                    __blocks.Remove(label);
-                    __blockEntryPoints.Remove(label);
+                    string label = block.Key;
+                    Tuple<BlockEntryPoint, RenpyBlock> brick = block.Value;
+
+                    if (__blocks.TryGetValue(label, out RenpyBlock _))
+                    {
+                        __blocks.Remove(label);
+                        __blockEntryPoints.Remove(label);
+                    }
+
+                    __blockEntryPoints.Add(label, brick.Item1);
+                    __blocks.Add(label, brick.Item2);
+
+                    ConsoleUtils.Log("Doki", $"Block processed -> {block.Key}");
                 }
 
-                __blockEntryPoints.Add(label, brick.Item1);
-                __blocks.Add(label, brick.Item2);
+                RenpyDefinition[] backgroundDefinitions = RenpyUtils.RenpyUtils.CustomDefinitions.Where(x => x.Type == DefinitionType.Image && x.Name.StartsWith("bg ")).ToArray();
 
-                ConsoleUtils.Log("Doki", $"Block processed -> {block.Key}");
-            }
-
-            RenpyDefinition[] backgroundDefinitions = RenpyUtils.RenpyUtils.CustomDefinitions.Where(x => x.Type == DefinitionType.Image && x.Name.StartsWith("bg ")).ToArray();
-
-            foreach (var backgroundDefinition in backgroundDefinitions)
-            {
-                string labelThatCalls = backgroundDefinition.Name; //the label just -> call label that loads image file -> sizes -> in this case bg bg_test2
-                string bundleName = backgroundDefinition.Value.Split('/')[0]; //bundle that holds custom background label that loads sprite -> in this case bgextended
-                string prefabForBackground = backgroundDefinition.Value.Split('/')[1]; //prefab name for game obj with bg -> in this case bg_test_original.prefab aka bg_test_original
-                string imageFile = backgroundDefinition.Value.Split('/')[2]; //image file -> in this case bg_test2.png
-
-                __blockEntryPoints.Add(labelThatCalls, new BlockEntryPoint(labelThatCalls));
-
-                __blocks.Add(labelThatCalls, new RenpyBlock(labelThatCalls)
+                foreach (var backgroundDefinition in backgroundDefinitions)
                 {
-                    callParameters = [],
-                    Contents = [ new RenpyLoadImage(prefabForBackground, $"{bundleName}/{imageFile}"), AssetUtils.CreateSize(1280, 720) ]
-                });
-            }
+                    string labelThatCalls = backgroundDefinition.Name; //the label just -> call label that loads image file -> sizes -> in this case bg bg_test2
+                    string prefabForBackground = backgroundDefinition.Value.Split('/')[0]; //prefab name for game obj with bg -> in this case bg_test_original.prefab aka bg_test_original
+                    string imageFile = backgroundDefinition.Value.Split('/')[1]; //image file -> in this case bg_test2.png
 
-            foreach (var block in __blocks)
-            {
-                if (block.Key == "start")
-                {
-                    block.Value.Contents.Clear();
-                    block.Value.Contents.AddRange(
-                    [
-                        new RenpyGoTo(RenpyScriptProcessor.JumpTolabel, false, $"jump {RenpyScriptProcessor.JumpTolabel}")
-                    ]);
+                    if (!__blockEntryPoints.ContainsKey(labelThatCalls))
+                    {
+                        __blockEntryPoints.Add(labelThatCalls, new BlockEntryPoint(labelThatCalls));
+
+                        __blocks.Add(labelThatCalls, new RenpyBlock(labelThatCalls)
+                        {
+                            callParameters = [],
+                            Contents = [new RenpyLoadImage(prefabForBackground, imageFile), AssetUtils.CreateSize(1280, 720)]
+                        });
+                    }
                 }
+
+                foreach (var block in __blocks)
+                {
+                    if (block.Key == "start")
+                    {
+                        block.Value.Contents.Clear();
+                        block.Value.Contents.AddRange(
+                        [
+                            new RenpyGoTo(RenpyScriptProcessor.JumpTolabel, false, $"jump {RenpyScriptProcessor.JumpTolabel}")
+                        ]);
+                    }
+                }
+
+                __instance.SetPrivateField("blocks", __blocks);
+                __instance.SetPrivateField("blockEntryPoints", __blockEntryPoints);
+
+                ConsoleUtils.Log("Doki", "Blocks deserialization overriden!");
             }
-
-            __instance.SetPrivateField("blocks", __blocks);
-            __instance.SetPrivateField("blockEntryPoints", __blockEntryPoints);
-
-            ConsoleUtils.Log("Doki", "Blocks deserialization overriden!");
+            catch(Exception e)
+            {
+                ConsoleUtils.Log("Doki", $"Failed to override Blocks deserialization! -> {e.StackTrace}");
+            }
         }
 
         private static bool DebugPatch(ref LogType logType, ref object message)
@@ -377,12 +413,28 @@ namespace Doki.Extensions
             queueIndexField.SetValue(__instance, queueIndex);
 
             object nextMusicData = ((Array)musicDataArray).GetValue(queueIndex);
-            AssetBundle foundBundle = AssetUtils.GetPreciseAudioRelatedBundle(audioData.simpleAssetName);
 
-            if (foundBundle == null)
-                return true;
+            AudioClip audioClip = null;
 
-            AudioClip audioClip = foundBundle.ForceLoadAsset<AudioClip>(audioData.simpleAssetName);
+            ProxyAssetBundle proxyBundle = AssetUtils.FindProxyBundleByAssetKey(audioData.simpleAssetName);
+
+            if (proxyBundle != null)
+            {
+                string outPath = proxyBundle.ToPath(audioData.simpleAssetName);
+
+                audioClip = (AudioClip)proxyBundle.Load("UnityEngine.AudioClip", outPath);
+            }
+
+            if (audioClip == null)
+            {
+                AssetBundle foundBundle = AssetUtils.GetPreciseAudioRelatedBundle(audioData.simpleAssetName);
+
+                if (foundBundle == null)
+                    return true;
+
+                audioClip = foundBundle.ForceLoadAsset<AudioClip>(audioData.simpleAssetName);
+            }
+
             audioSource.clip = audioClip;
 
             if (looped)

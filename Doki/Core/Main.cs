@@ -86,17 +86,22 @@ THE SOFTWARE.
                     {
                         if (!AssetUtils.FakeBundles.ContainsKey(mod.ID))
                         {
-                            AssetUtils.FakeBundles.Add(mod.ID, new ProxyAssetBundle());
+                            AssetUtils.FakeBundles.Add(mod.ID, new ProxyAssetBundle(mod.AssetsPath + "\\bgextended.assetbundles"));
+                            AssetUtils.AssetBundles.Add(mod.ID, AssetUtils.FakeBundles[mod.ID].FakeInstance);
+
                             ConsoleUtils.Log("Doki", $"Proxying asset bundle for mod ID: {mod.ID}...");
                         }
 
                         AssetUtils.FakeBundles[mod.ID].Map(key, assetBundlePath);
+                        AssetUtils.AssetsToBundles[key] = new Tuple<string, Tuple<string, bool>>(mod.ID, new Tuple<string, bool>(assetBundlePath, true));
+
                         ConsoleUtils.Log("Doki", $"Mapping asset key: {key} to fake path -> {assetBundlePath}...");
                         continue;
                     }
 
                     ConsoleUtils.Log("Doki", $"Loading mod asset bundle -> {assetBundlePath}");
                     AssetBundle bundle = AssetUtils.LoadAssetBundle(assetBundlePath);
+
                     AssetUtils.AssetBundles.Add(key, bundle);
 
                     foreach (var asset in bundle.GetAllAssetNames())
