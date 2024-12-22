@@ -8,9 +8,9 @@ namespace DokiModTest
 {
     public class DokiModTest : DokiMod
     {
-        public override string ID => "DokiMod2";
+        public override string ID => "DokiModTest";
         public override string Name => "Doki Mod Test";
-        public override string Author => "Uh";
+        public override string Author => "Doki Dev Team";
         public override string Version => "1.0";
         public override string LabelEntryPoint => "startmod";
 

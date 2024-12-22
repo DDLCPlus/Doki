@@ -109,7 +109,7 @@ namespace Doki.Extensions
 
                     spriteHolder.transform.SetParent(compositeObject.transform, false);
 
-                    spriteHolder.transform.localPosition = new Vector3(offset.x, offset.y, 0);
+                    spriteHolder.transform.localPosition = new Vector3(Mathf.Round(offset.x), Mathf.Round(offset.y), 0);
                     spriteHolder.transform.localScale = Vector3.one;
 
                     SpriteRenderer renderer = spriteHolder.AddComponent<SpriteRenderer>();
@@ -121,6 +121,9 @@ namespace Doki.Extensions
                         string outPath = proxyBundle.ToPath(Path.GetFileNameWithoutExtension(assetPath));
 
                         renderer.sprite = (Sprite)proxyBundle.Load("UnityEngine.Sprite", outPath);
+
+                        renderer.sprite.texture.filterMode = FilterMode.Trilinear;
+                        renderer.sprite.texture.wrapMode = TextureWrapMode.Clamp;
                     }
                     else
                     {

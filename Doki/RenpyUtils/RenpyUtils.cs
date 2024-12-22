@@ -55,17 +55,6 @@ THE SOFTWARE.
         public static Dictionary<object, Line> Jumps = [];
         public static List<string> Sounds = [];
 
-        public static Dialogue RetrieveLineFromText(string text)
-        {
-            foreach (var line in CustomDialogue)
-            {
-                if (line.Text.ToLower() == text.ToLower())
-                    return line;
-            }
-
-            return null;
-        }
-
         public static CharacterData ParseCharacterDefinition(string rawDefinition)
         {
             CharacterData character = new();
