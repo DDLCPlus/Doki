@@ -1,28 +1,28 @@
 using System;
 using System.Collections.Generic;
 
-namespace RenDisco
+namespace Doki.Renpie.RenDisco
 {
     public class Play
     {
-        private readonly Play? _parent; // The current parent
+        private readonly Play _parent; // The current parent
         private readonly IRuntimeEngine _runtime; // The current runtime
-        private Play? _child = null; // The current child
+        private Play _child = null; // The current child
         private bool _jumped; // If we've been jumped - will mean once the child is done, we end the play
         private bool _waitingForInput; // If this current Play is waiting for input
 
         public List<RenpyCommand> Commands;
         public int ProgramCounter { get; set; }
         public bool ReturnToParent { get; set; }
-        public Play? CurrentChild
+        public Play CurrentChild
         {
-            get => this._child;
-            set => this._child = value;
+            get => _child;
+            set => _child = value;
         }
         public bool WaitingForInput
         {
-            get => this._waitingForInput || (this._child?.WaitingForInput ?? false);
-            set => this._waitingForInput = value;
+            get => _waitingForInput || (_child?.WaitingForInput ?? false);
+            set => _waitingForInput = value;
         }
 
 
@@ -32,7 +32,7 @@ namespace RenDisco
         /// <param name="runtime">The engine that executes the script actions.</param>
         /// <param name="commands">List of commands to execute.</param>
         /// <param name="parent">The parent Play context, used for handling scopes and returns.</param>
-        public Play(IRuntimeEngine runtime, List<RenpyCommand> commands, Play? parent = null)
+        public Play(IRuntimeEngine runtime, List<RenpyCommand> commands, Play parent = null)
         {
             Commands = commands;
             ProgramCounter = 0;
@@ -50,7 +50,7 @@ namespace RenDisco
         /// </param>
         /// <param name="stepContext">Set our Step context.</param>
         /// <returns>Boolean indicating if execution should continue.</returns>
-        public bool Step(bool returnToParent = false, StepContext? stepContext = null)
+        public bool Step(bool returnToParent = false, StepContext stepContext = null)
         {
             // This will permanently set current execution to return to Parent.
             if (returnToParent) ReturnToParent = true;
@@ -64,11 +64,11 @@ namespace RenDisco
                     if (!_jumped && !ReturnToParent)
                     {
                         _child = null;
-                        this.ProgramCounter++;
+                        ProgramCounter++;
                     }
                     // If we've jumped, we end our execution once our Child is done.
                     else if (_jumped)
-                        this.ProgramCounter = this.Commands.Count + 1;
+                        ProgramCounter = Commands.Count + 1;
                 }
                 else
                 {
@@ -109,7 +109,7 @@ namespace RenDisco
         /// </summary>
         /// <param name="command">The command to execute.</param>
         /// <returns>Boolean indicating if execution should continue.</returns>
-        private bool ExecuteCommand(RenpyCommand command, StepContext? stepContext = null)
+        private bool ExecuteCommand(RenpyCommand command, StepContext stepContext = null)
         {
             switch (command)
             {
@@ -119,23 +119,23 @@ namespace RenDisco
                 case Dialogue dialogue:
                     if (stepContext != null)
                     {
-                        this.WaitingForInput = false;
+                        WaitingForInput = false;
                     }
                     else if (!WaitingForInput)
                     {
                         _runtime.ShowDialogue(dialogue.Character, dialogue.Text);
-                        this.WaitingForInput = true;
+                        WaitingForInput = true;
                     }
                     break;
                 case Narration narration:
                     if (stepContext != null)
                     {
-                        this.WaitingForInput = false;
+                        WaitingForInput = false;
                     }
                     else if (!WaitingForInput)
                     {
                         _runtime.ShowNarration(narration.Text);
-                        this.WaitingForInput = true;
+                        WaitingForInput = true;
                     }
                     break;
                 case Scene scene:
@@ -192,7 +192,7 @@ namespace RenDisco
         /// </summary>
         /// <param name="menu">The menu command containing choices and responses.</param>
         /// <returns>The result of the run, whether to break or not.</returns>
-        private void ExecuteMenu(Menu menu, StepContext? stepContext = null)
+        private void ExecuteMenu(Menu menu, StepContext stepContext = null)
         {
             try
             {
@@ -201,8 +201,8 @@ namespace RenDisco
                     int selectedChoice = stepContext.Choice ?? -1;
                     if (selectedChoice == -1) return;
                     WaitingForInput = false;
-                    this._child = new Play(_runtime, menu.Choices[selectedChoice].Response, this);
-                    this._child.Step(stepContext: stepContext);
+                    _child = new Play(_runtime, menu.Choices[selectedChoice].Response, this);
+                    _child.Step(stepContext: stepContext);
                 }
                 else if (!WaitingForInput)
                 {
@@ -227,10 +227,10 @@ namespace RenDisco
         /// </summary>
         /// <param name="condition"></param>
         /// <param name="content"></param>
-        private void ExecuteLabel(Label label, StepContext? stepContext = null)
+        private void ExecuteLabel(Label label, StepContext stepContext = null)
         {
-            this._child = new Play(_runtime, label.Commands, this);
-            this._child.Step(stepContext: stepContext);
+            _child = new Play(_runtime, label.Commands, this);
+            _child.Step(stepContext: stepContext);
         }
 
         /// <summary>
@@ -239,12 +239,12 @@ namespace RenDisco
         /// <param name="condition"></param>
         /// <param name="content"></param>
         /// <returns>The result of the run, whether to break or not.</returns>
-        private void ExecuteConditionalBlock(string condition, List<RenpyCommand> content, StepContext? stepContext = null)
+        private void ExecuteConditionalBlock(string condition, List<RenpyCommand> content, StepContext stepContext = null)
         {
             if (EvaluateCondition(condition))
             {
-                this._child = new Play(_runtime, content, this);
-                this._child.Step(stepContext: stepContext);
+                _child = new Play(_runtime, content, this);
+                _child.Step(stepContext: stepContext);
             }
         }
 
@@ -252,14 +252,14 @@ namespace RenDisco
         /// Execute a jump command which modifies the program counter.
         /// </summary>
         /// <param name="labelName">The label name to jump to.</param>
-        private void ExecuteJump(string labelName, StepContext? stepContext = null)
+        private void ExecuteJump(string labelName, StepContext stepContext = null)
         {
-            this._child = FindLabel(labelName);
-            if (this._child != null)
+            _child = FindLabel(labelName);
+            if (_child != null)
             {
-                this._jumped = true;
-                this._child.CurrentChild = null;
-                this._child?.Step(returnToParent: true, stepContext: stepContext);
+                _jumped = true;
+                _child.CurrentChild = null;
+                _child?.Step(returnToParent: true, stepContext: stepContext);
             }
         }
 
@@ -268,7 +268,7 @@ namespace RenDisco
         /// </summary>
         /// <param name="labelName">The name of the label to find.</param>
         /// <returns>The Play instance associated with the found label, or null if no label found.</returns>
-        private Play? FindLabel(string labelName)
+        private Play FindLabel(string labelName)
         {
             for (var i = 0; i < Commands.Count; i++)
             {

@@ -1,8 +1,8 @@
-﻿using RenDisco;
+﻿using Doki.Renpie.RenDisco;
 using System.Collections.Generic;
 using System.Linq;
 
-namespace Doki.RenpyUtils
+namespace Doki.Renpie.Parser
 {
     public class RenpyCondition
     {

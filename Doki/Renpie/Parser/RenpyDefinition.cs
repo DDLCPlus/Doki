@@ -1,4 +1,4 @@
-﻿namespace Doki.RenpyUtils
+﻿namespace Doki.Renpie.Parser
 {
     public enum DefinitionType
     {

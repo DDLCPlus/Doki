@@ -1,7 +1,7 @@
 ﻿using Doki.Mods;
-using Doki.RenpyUtils;
+using Doki.Renpie;
+using Doki.Renpie.Parser;
 using HarmonyLib;
-using RenDisco;
 using RenpyParser;
 using RenPyParser.AssetManagement;
 using RenPyParser.Images;
@@ -47,6 +47,7 @@ namespace Doki.Extensions
                 HarmonyInstance.Patch(typeof(RenpyScript).GetMethods().Where(x => x.Name == "Init").Last(), postfix: new HarmonyMethod(typeof(PatchUtils).GetMethod("InitPatch", BindingFlags.Static | BindingFlags.NonPublic)));
                 HarmonyInstance.Patch(typeof(Lines).GetMethod("GetValue"), prefix: new HarmonyMethod(typeof(PatchUtils).GetMethod("HistoryPatch", BindingFlags.Static | BindingFlags.NonPublic)));
                 HarmonyInstance.Patch(typeof(ActiveImage).GetMethod("ChangeAssetImmediate", BindingFlags.NonPublic | BindingFlags.Instance), postfix: new HarmonyMethod(typeof(PatchUtils).GetMethod("ChangeAssetImmediatePostPatch", BindingFlags.Static | BindingFlags.NonPublic)));
+                //HarmonyInstance.Patch(typeof(RenpyScriptExecution).GetMethod("Run"), prefix: new HarmonyMethod(typeof(PatchUtils).GetMethod("DefinitionsPatch", BindingFlags.Static | BindingFlags.NonPublic))); -- hella unstable
 
                 foreach (var mod in DokiModsManager.Mods)
                 {
@@ -82,85 +83,106 @@ namespace Doki.Extensions
             }
         }
 
+        //private static void DefinitionsPatch(RenpyScriptExecution __instance, RenpyExecutionContext ____executionContext)
+        //{
+        //    foreach (var customDefinition in RenpyUtils.RenpyUtils.CustomDefinitions.Where(x => x.Type == DefinitionType.Unknown))
+        //    {
+        //        string name = customDefinition.Name;
+
+        //        DataValue value = SimpleExpressionEngine.Parser.Parse(customDefinition.Value).Eval(____executionContext);
+
+        //        ____executionContext.SetVariable(name, value);
+        //    }
+        //}
+
         private static void ChangeAssetImmediatePostPatch(ActiveImage __instance, string name, GameObject parent, bool force = false)
         {
-            RenpyDefinition definition = RenpyUtils.RenpyUtils.CustomDefinitions.FirstOrDefault(x => x.Name == name && x.Type == DefinitionType.Image);
-
-            if (definition == null)
-                return;
-
-            if (definition.Value.StartsWith("im.Composite("))
+            foreach(Script script in ScriptsHandler.LoadedScripts)
             {
-                var parsedCompositeValue = RenpyUtils.RenpyUtils.ParseFixedCompositeSprite(definition.Value);
+                RenpyDefinition definition = script.Definitions.FirstOrDefault(x => x.Name == name && x.Type == DefinitionType.Image);
 
-                GameObject compositeObject = new GameObject(name);
+                if (definition == null)
+                    return;
 
-                compositeObject.transform.SetParent(__instance.Object.transform, false);
-                compositeObject.transform.localPosition = Vector3.zero;
-                compositeObject.transform.localScale = Vector3.one;
-
-                for (int i = 0; i < parsedCompositeValue.AssetPaths.Length; i++)
+                if (definition.Value.StartsWith("im.Composite("))
                 {
-                    string assetPath = parsedCompositeValue.AssetPaths[i];
+                    var parsedCompositeValue = script.ParseFixedCompositeSprite(definition.Value);
 
-                    Vector2Int offset = parsedCompositeValue.Offsets[i];
+                    GameObject compositeObject = new GameObject(name);
 
-                    GameObject spriteHolder = new GameObject($"Sprite {assetPath}");
+                    compositeObject.transform.SetParent(__instance.Object.transform, false);
+                    compositeObject.transform.localPosition = Vector3.zero;
+                    compositeObject.transform.localScale = Vector3.one;
 
-                    spriteHolder.transform.SetParent(compositeObject.transform, false);
-
-                    spriteHolder.transform.localPosition = new Vector3(Mathf.Round(offset.x), Mathf.Round(offset.y), 0);
-                    spriteHolder.transform.localScale = Vector3.one;
-
-                    SpriteRenderer renderer = spriteHolder.AddComponent<SpriteRenderer>();
-
-                    ProxyAssetBundle proxyBundle = AssetUtils.FindProxyBundleByAssetKey(Path.GetFileNameWithoutExtension(assetPath));
-
-                    if (proxyBundle != null)
+                    for (int i = 0; i < parsedCompositeValue.AssetPaths.Length; i++)
                     {
-                        string outPath = proxyBundle.ToPath(Path.GetFileNameWithoutExtension(assetPath));
+                        string assetPath = parsedCompositeValue.AssetPaths[i];
 
-                        renderer.sprite = (Sprite)proxyBundle.Load("UnityEngine.Sprite", outPath);
+                        Vector2Int offset = parsedCompositeValue.Offsets[i];
 
-                        renderer.sprite.texture.filterMode = FilterMode.Trilinear;
-                        renderer.sprite.texture.wrapMode = TextureWrapMode.Clamp;
+                        GameObject spriteHolder = new GameObject($"Sprite {assetPath}");
+
+                        spriteHolder.transform.SetParent(compositeObject.transform, false);
+
+                        spriteHolder.transform.localPosition = new Vector3(Mathf.Round(offset.x), Mathf.Round(offset.y), 0);
+                        spriteHolder.transform.localScale = Vector3.one;
+
+                        SpriteRenderer renderer = spriteHolder.AddComponent<SpriteRenderer>();
+
+                        ProxyAssetBundle proxyBundle = AssetUtils.FindProxyBundleByAssetKey(Path.GetFileNameWithoutExtension(assetPath));
+
+                        if (proxyBundle != null)
+                        {
+                            string outPath = proxyBundle.ToPath(Path.GetFileNameWithoutExtension(assetPath));
+
+                            renderer.sprite = (Sprite)proxyBundle.Load("UnityEngine.Sprite", outPath);
+
+                            renderer.sprite.texture.filterMode = FilterMode.Trilinear;
+                            renderer.sprite.texture.wrapMode = TextureWrapMode.Clamp;
+                        }
+                        else
+                        {
+                            AssetBundle realBundle = AssetUtils.AssetBundles[AssetUtils.AssetsToBundles[Path.GetFileNameWithoutExtension(assetPath)].Item2.Item1];
+
+                            if (realBundle == null)
+                                continue;
+
+                            renderer.sprite = realBundle.ForceLoadAsset<Sprite>(Path.GetFileNameWithoutExtension(assetPath));
+                        }
+
+                        ConsoleUtils.Log("PatchUtils -> ChangeAssetImmediatePostPatch", $"Sprite loaded: {renderer.sprite?.name ?? "null"}");
                     }
-                    else
-                    {
-                        AssetBundle realBundle = AssetUtils.AssetBundles[AssetUtils.AssetsToBundles[Path.GetFileNameWithoutExtension(assetPath)].Item2.Item1];
-
-                        if (realBundle == null)
-                            continue;
-
-                        renderer.sprite = realBundle.ForceLoadAsset<Sprite>(Path.GetFileNameWithoutExtension(assetPath));
-                    }
-
-                    ConsoleUtils.Log("PatchUtils -> ChangeAssetImmediatePostPatch", $"Sprite loaded: {renderer.sprite?.name ?? "null"}");
                 }
             }
         }
 
         private static void InitPatch(RenpyScript __instance, Defaults defaults, Dictionary<string, CharacterData> characters, Defaults globals, StyleDefinitions styles, Dictionary<string, Dictionary<int, string>> lines, Dictionary<string, RenpyAudioData> audio, GameObject libObject)
         {
-            RenpyDefinition[] CustomCharacters = RenpyUtils.RenpyUtils.CustomDefinitions.Where(x => x.Type == DefinitionType.Character).ToArray();
+            foreach(Script script in ScriptsHandler.LoadedScripts)
+            {
+                RenpyDefinition[] CustomCharacters = script.Definitions.Where(x => x.Type == DefinitionType.Character).ToArray();
 
-            foreach (var customChar in RenpyUtils.RenpyUtils.Characters)
-                __instance.Characters.Add(customChar.Key, customChar.Value);
+                foreach (var customChar in script.Characters)
+                    __instance.Characters.Add(customChar.Key, customChar.Value);
+            }
         }
 
         private static bool HistoryPatch(Lines __instance, string innerKey, int outerKey, ref string __result)
         {
             Dictionary<string, Dictionary<int, string>> lines = (Dictionary<string, Dictionary<int, string>>)__instance.GetPrivateField("lines");
 
-            var line = RenpyUtils.RenpyUtils.RetrieveLineFromText(outerKey);
-
-            if (!lines.ContainsKey(innerKey))
-                lines.Add(innerKey, new Dictionary<int, string>());
-
-            if (line != null && !lines[innerKey].ContainsKey(outerKey))
+            foreach (Script script in ScriptsHandler.LoadedScripts)
             {
-                lines[innerKey][outerKey] = line.Text;
-                __instance.SetPrivateField("lines", lines);
+                var line = script.RetrieveLineFromText(outerKey);
+
+                if (!lines.ContainsKey(innerKey))
+                    lines.Add(innerKey, new Dictionary<int, string>());
+
+                if (line != null && !lines[innerKey].ContainsKey(outerKey))
+                {
+                    lines[innerKey][outerKey] = line.Text;
+                    __instance.SetPrivateField("lines", lines);
+                }
             }
 
             return true;
@@ -169,16 +191,6 @@ namespace Doki.Extensions
         private static void NextPatch(RenpyCallstackEntry __instance, Line __result)
         {
             CurrentLine = (int)__instance.GetPrivateField("lastLine");
-
-            if (RenpyUtils.RenpyUtils.CustomVariables.TryGetValue(new Tuple<int, string>(CurrentLine, __instance.blockName), out RenpyDefinition definition))
-            {
-                string value = definition.Value;
-
-                if (float.TryParse(value, out float floatValue))
-                    Renpy.CurrentContext.SetVariableFloat(value, floatValue);
-                else
-                    Renpy.CurrentContext.SetVariableString(definition.Name, definition.Value.ToString());
-            }
         }
 
         private static bool InitialiseWithAudioDefinesPatch(RenpyExecutionContext __instance, AudioDefines defines)
@@ -193,13 +205,16 @@ namespace Doki.Extensions
                 dictionary[keyValuePair.Key] = new DataValue(keyValuePair.Value);
             }
 
-            foreach (RenpyDefinition renpyDefinition in RenpyUtils.RenpyUtils.CustomDefinitions)
+            foreach(Script script in ScriptsHandler.LoadedScripts)
             {
-                string name = renpyDefinition.Name;
-                string value = renpyDefinition.Value;
+                foreach (RenpyDefinition renpyDefinition in script.Definitions)
+                {
+                    string name = renpyDefinition.Name;
+                    string value = renpyDefinition.Value;
 
-                if (value.Contains(".ogg") || value.Contains(".mp3") || value.Contains(".wav"))
-                    dictionary[name] = new DataValue(RenpyAudioData.CreateAudioData(value));
+                    if (value.Contains(".ogg") || value.Contains(".mp3") || value.Contains(".wav"))
+                        dictionary[name] = new DataValue(RenpyAudioData.CreateAudioData(value));
+                }
             }
 
             __instance.SetPrivateField("m_ExecutionVariables", m_ExecutionVariables);
@@ -314,60 +329,63 @@ namespace Doki.Extensions
                 var __blocks = (Dictionary<string, RenpyBlock>)__instance.GetPrivateField("blocks");
                 var __blockEntryPoints = (Dictionary<string, BlockEntryPoint>)__instance.GetPrivateField("blockEntryPoints");
 
-                foreach (var block in RenpyScriptProcessor.BlocksDict)
+                foreach(Script script in ScriptsHandler.LoadedScripts)
                 {
-                    string label = block.Key;
-                    Tuple<BlockEntryPoint, RenpyBlock> brick = block.Value;
-
-                    if (__blocks.TryGetValue(label, out RenpyBlock _))
+                    foreach (var block in script.BlocksDict)
                     {
-                        __blocks.Remove(label);
-                        __blockEntryPoints.Remove(label);
-                    }
+                        string label = block.Key;
+                        Tuple<BlockEntryPoint, RenpyBlock> brick = block.Value;
 
-                    __blockEntryPoints.Add(label, brick.Item1);
-                    __blocks.Add(label, brick.Item2);
-
-                    ConsoleUtils.Log("Doki", $"Block processed -> {block.Key}");
-                }
-
-                RenpyDefinition[] imageDefinitions = RenpyUtils.RenpyUtils.CustomDefinitions.Where(x => x.Type == DefinitionType.Image).ToArray();
-
-                foreach (var imageDefinition in imageDefinitions)
-                {
-                    bool isBackgroundDefinition = imageDefinition.Name.StartsWith("bg ");
-
-                    if (isBackgroundDefinition)
-                    {
-                        var backgroundDefinition = imageDefinition; //im lazy
-
-                        string labelThatCalls = backgroundDefinition.Name; //the label just -> call label that loads image file -> sizes -> in this case bg bg_test2
-                        string prefabForBackground = backgroundDefinition.Value.Split('/')[0]; //prefab name for game obj with bg -> in this case bg_test_original.prefab aka bg_test_original
-                        string imageFile = backgroundDefinition.Value.Split('/')[1]; //image file -> in this case bg_test2.png
-
-                        if (!__blockEntryPoints.ContainsKey(labelThatCalls))
+                        if (__blocks.TryGetValue(label, out RenpyBlock _))
                         {
-                            __blockEntryPoints.Add(labelThatCalls, new BlockEntryPoint(labelThatCalls));
-                            __blocks.Add(labelThatCalls, new RenpyBlock(labelThatCalls)
-                            {
-                                callParameters = [],
-                                Contents = [new RenpyLoadImage(prefabForBackground, imageFile), AssetUtils.CreateSize(1280, 720)]
-                            });
+                            __blocks.Remove(label);
+                            __blockEntryPoints.Remove(label);
                         }
-                    }
-                    else
-                    {
-                        string imageBlockName = imageDefinition.Name;
-                        string val = imageDefinition.Value;
 
-                        if (!__blockEntryPoints.ContainsKey(imageBlockName))
+                        __blockEntryPoints.Add(label, brick.Item1);
+                        __blocks.Add(label, brick.Item2);
+
+                        ConsoleUtils.Log("Doki", $"Block processed -> {block.Key}");
+                    }
+
+                    RenpyDefinition[] imageDefinitions = script.Definitions.Where(x => x.Type == DefinitionType.Image).ToArray();
+
+                    foreach (var imageDefinition in imageDefinitions)
+                    {
+                        bool isBackgroundDefinition = imageDefinition.Name.StartsWith("bg ");
+
+                        if (isBackgroundDefinition)
                         {
-                            __blockEntryPoints.Add(imageBlockName, new BlockEntryPoint(imageBlockName));
-                            __blocks.Add(imageBlockName, new RenpyBlock(imageBlockName)
+                            var backgroundDefinition = imageDefinition; //im lazy
+
+                            string labelThatCalls = backgroundDefinition.Name; //the label just -> call label that loads image file -> sizes -> in this case bg bg_test2
+                            string prefabForBackground = backgroundDefinition.Value.Split('/')[0]; //prefab name for game obj with bg -> in this case bg_test_original.prefab aka bg_test_original
+                            string imageFile = backgroundDefinition.Value.Split('/')[1]; //image file -> in this case bg_test2.png
+
+                            if (!__blockEntryPoints.ContainsKey(labelThatCalls))
                             {
-                                callParameters = [],
-                                Contents = [new RenpyLoadImage(imageBlockName, val)]
-                            });
+                                __blockEntryPoints.Add(labelThatCalls, new BlockEntryPoint(labelThatCalls));
+                                __blocks.Add(labelThatCalls, new RenpyBlock(labelThatCalls)
+                                {
+                                    callParameters = [],
+                                    Contents = [new RenpyLoadImage(prefabForBackground, imageFile), RenpyUtils.CreateSize(1280, 720)]
+                                });
+                            }
+                        }
+                        else
+                        {
+                            string imageBlockName = imageDefinition.Name;
+                            string val = imageDefinition.Value;
+
+                            if (!__blockEntryPoints.ContainsKey(imageBlockName))
+                            {
+                                __blockEntryPoints.Add(imageBlockName, new BlockEntryPoint(imageBlockName));
+                                __blocks.Add(imageBlockName, new RenpyBlock(imageBlockName)
+                                {
+                                    callParameters = [],
+                                    Contents = [new RenpyLoadImage(imageBlockName, val)]
+                                });
+                            }
                         }
                     }
                 }
@@ -379,7 +397,7 @@ namespace Doki.Extensions
                         block.Value.Contents.Clear();
                         block.Value.Contents.AddRange(
                         [
-                            new RenpyGoTo(RenpyScriptProcessor.JumpTolabel, false, $"jump {RenpyScriptProcessor.JumpTolabel}")
+                            new RenpyGoTo(ScriptsHandler.JumpTolabel, false, $"jump {ScriptsHandler.JumpTolabel}")
                         ]);
                     }
                 }
@@ -413,7 +431,7 @@ namespace Doki.Extensions
         {
             if (__result.Item1.Label.Contains("natsuki") || __result.Item1.Label.Contains("bg") || __result.Item1.Label.Contains("t11"))
             {
-                RenpyUtils.RenpyUtils.DumpBlock(__result.Item1);
+                RenpyUtils.DumpBlock(__result.Item1);
                 ConsoleUtils.Debug("Doki", $"Resolved normal label -> {label}");
             }
         }
@@ -429,7 +447,7 @@ namespace Doki.Extensions
             ConsoleUtils.Debug("Doki", $"Tried to resolve normal label -> {label}");
 
             if (label.Contains("bg") || label.Contains("natsuki") || label.Contains("t11"))
-                RenpyUtils.RenpyUtils.DumpBlock(tuple.Item1);
+                RenpyUtils.DumpBlock(tuple.Item1);
         }
 
         private static bool InitAudioSourcePatch(MusicSource __instance, RenpyAudioData audioData, ref int index, bool looped, int loopCount, IContext context, string setFlag, bool immediate = true, int loopNumber = 0)
@@ -438,7 +456,9 @@ namespace Doki.Extensions
             //simple asset name = 2
             // load from simple asset name but check from name
 
-            if (!RenpyUtils.RenpyUtils.Sounds.Contains(audioData.name) && !RenpyUtils.RenpyUtils.Sounds.Contains(audioData.simpleAssetName))
+            bool noResultsFound = ScriptsHandler.LoadedScripts.Where(x => !x.Sounds.Contains(audioData.name) && !x.Sounds.Contains(audioData.simpleAssetName)).Any();
+
+            if (noResultsFound)
                 return true; //It is a whole nightmare dealing with official shit
 
             var musicSources = AccessTools.Field(__instance.GetType(), "musicSources").GetValue(__instance) as AudioSource[];

@@ -2,19 +2,19 @@ using System;
 using System.Collections.Generic;
 using System.Text.RegularExpressions;
 
-namespace RenDisco
+namespace Doki.Renpie.RenDisco
 {
     public class BaseRuntimeEngine : IRuntimeEngine
     {
         private Dictionary<string, object> _variables = [];
-        private Dictionary<string, Dictionary<string, string?>> _characters = [];
+        private Dictionary<string, Dictionary<string, string>> _characters = [];
 
         /// <summary>
         /// Displays dialogue for a specific character or as narration if no character is provided.
         /// </summary>
         /// <param name="character">The character speaking the dialogue.</param>
         /// <param name="dialogue">The dialogue text.</param>
-        public void ShowDialogue(string? character, string dialogue)
+        public void ShowDialogue(string character, string dialogue)
         {
             string id = character ?? "";
             Console.WriteLine(_characters[id] == null ? dialogue : $"{_characters[id]["name"]}: {dialogue}");
@@ -34,12 +34,12 @@ namespace RenDisco
         /// </summary>
         /// <param name="image">The path or identifier for the image.</param>
         /// <param name="transition">The transition effect to use.</param>
-        public void ShowImage(string image, string? transition = null)
+        public void ShowImage(string image, string transition = null)
         {
             Console.WriteLine(transition == null ? $"Show Image: {image}" : $"Show Image: {image} with {transition} transition");
         }
 
-        public void HideImage(string image, string? transition = null)
+        public void HideImage(string image, string transition = null)
         {
             Console.WriteLine(transition == null ? $"Hide Image: {image}" : $"Hide Image: {image} with {transition} transition");
         }
@@ -78,7 +78,7 @@ namespace RenDisco
         /// <param name="id">The unique identifier for the character.</param>
         /// <param name="name">The display name of the character.</param>
         /// <param name="colour">The optional color associated with the character.</param>
-        public void DefineCharacter(string id, Dictionary<string, string?> settings)
+        public void DefineCharacter(string id, Dictionary<string, string> settings)
         {
             _characters[id] = settings;
         }
@@ -88,7 +88,7 @@ namespace RenDisco
         /// </summary>
         /// <param name="id">The character's unique identifier.</param>
         /// <returns>The character's name, or null if not found.</returns>
-        public Dictionary<string, string?>? GetCharacter(string id)
+        public Dictionary<string, string> GetCharacter(string id)
         {
             return _characters.ContainsKey(id) ? _characters[id] : null;
         }
@@ -98,7 +98,7 @@ namespace RenDisco
         /// </summary>
         /// <param name="id">The character's unique identifier.</param>
         /// <returns>The character's name, or null if not found.</returns>
-        public string? GetCharacterName(string id)
+        public string GetCharacterName(string id)
         {
             return _characters.ContainsKey(id) ? _characters[id]["name"] : null;
         }
@@ -108,7 +108,7 @@ namespace RenDisco
         /// </summary>
         /// <param name="id">The character's unique identifier.</param>
         /// <returns>The character's color, or null if not found.</returns>
-        public string? GetCharacterColour(string id)
+        public string GetCharacterColour(string id)
         {
             return _characters.ContainsKey(id) ? _characters[id]["colour"] : null;
         }
@@ -128,7 +128,7 @@ namespace RenDisco
         /// </summary>
         /// <param name="name">The variable name.</param>
         /// <returns>The value of the variable, or null if not found.</returns>
-        public object? GetVariable(string name)
+        public object GetVariable(string name)
         {
             return _variables.ContainsKey(name) ? _variables[name] : null;
         }
@@ -141,7 +141,7 @@ namespace RenDisco
         {
             if (define.Definition?.MethodName == "Character")
             {
-                Dictionary<string, string?> characterSettings = [];
+                Dictionary<string, string> characterSettings = [];
 
                 foreach (ParamPairExpression paramPair in define.Definition.ParamList.Params)
                 {

@@ -296,10 +296,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Folder Include="RenDisco\" />
-  </ItemGroup>
-
-  <ItemGroup>
 	  <PackageReference Include="Lib.Harmony" Version="2.3.3" />
   </ItemGroup>
 

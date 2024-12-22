@@ -1,6 +1,6 @@
 ﻿using System.Collections.Generic;
 
-namespace RenDisco
+namespace Doki.Renpie.RenDisco
 {
     /// <summary>
     /// Base abstract class for all types of Renpy commands.
@@ -84,7 +84,7 @@ namespace RenDisco
         /// <summary>
         /// Gets or sets the Saving Throw.
         /// </summary>
-        public MethodExpression? SavingThrow { get; set; }
+        public MethodExpression SavingThrow { get; set; }
     }
 
     /// <summary>
@@ -213,7 +213,7 @@ namespace RenDisco
         /// <summary>
         /// Gets or sets the right hand value to be defined.
         /// </summary>
-        public MethodExpression? Definition { get; set; }
+        public MethodExpression Definition { get; set; }
 
         public string Raw { get; set; }
     }

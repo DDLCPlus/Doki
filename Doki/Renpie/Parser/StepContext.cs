@@ -1,4 +1,4 @@
-namespace RenDisco
+namespace Doki.Renpie.RenDisco
 {
     public class StepContext(int? choice = null)
     {

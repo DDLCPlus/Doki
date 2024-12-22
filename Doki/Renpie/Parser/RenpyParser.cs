@@ -6,7 +6,7 @@ using System.Text.RegularExpressions;
 using System.Xml.Linq;
 using UnityEngine;
 
-namespace RenDisco
+namespace Doki.Renpie.RenDisco
 {
     /// <summary>
     /// Parses Ren'Py script code and creates a list of RenpyCommand objects to represent the script.
@@ -39,7 +39,7 @@ namespace RenDisco
 
             bool insideMultilineString = false;
             string multiLineStringAccumulator = "";
-            string? multilineCharacter = null;
+            string multilineCharacter = null;
             int? initialIndentation = null;
 
             // Process each line in the script
@@ -113,11 +113,11 @@ namespace RenDisco
 
         private static bool ShouldPopScope(Stack<Scope> scopeStack, int indentationLevel)
         {
-            return (indentationLevel < scopeStack.Peek().Indentation && scopeStack.Count > 1) ||
-                   (scopeStack.Peek().ScopeHead is Label label && label.Indentation >= indentationLevel);
+            return indentationLevel < scopeStack.Peek().Indentation && scopeStack.Count > 1 ||
+                   scopeStack.Peek().ScopeHead is Label label && label.Indentation >= indentationLevel;
         }
 
-        private static bool ProcessMultilineString(string line, string? multilineCharacter, ref bool insideMultilineString, ref string multiLineStringAccumulator, Scope currentScope)
+        private static bool ProcessMultilineString(string line, string multilineCharacter, ref bool insideMultilineString, ref string multiLineStringAccumulator, Scope currentScope)
         {
             multiLineStringAccumulator += line + "\n";
 
@@ -136,7 +136,7 @@ namespace RenDisco
             return false;
         }
 
-        private static bool ProcessMultilineStringStart(string trimmedLine, ref string? multilineCharacter, ref bool insideMultilineString, ref string multiLineStringAccumulator)
+        private static bool ProcessMultilineStringStart(string trimmedLine, ref string multilineCharacter, ref bool insideMultilineString, ref string multiLineStringAccumulator)
         {
             if (trimmedLine.Contains("\"\"\"") || trimmedLine.Contains("'''"))
             {
@@ -535,7 +535,7 @@ namespace RenDisco
         private static bool ParseDialogue(string trimmedLine, Scope currentScope)
         {
             // Detect lines beginning with dialogue quotes or a name followed by dialogue in quotes
-            if ((trimmedLine.Contains(" ") && trimmedLine.IndexOf('"') > 0))
+            if (trimmedLine.Contains(" ") && trimmedLine.IndexOf('"') > 0)
             {
                 var parts = trimmedLine.Split(['\"'], 2, StringSplitOptions.RemoveEmptyEntries);
                 string character = parts[0].Trim();
@@ -584,12 +584,12 @@ namespace RenDisco
         #endregion
 
         // Scope class for managing nested blocks and commands
-        private class Scope(List<RenpyCommand> commands, RenpyCommand? renpyCommand = null)
+        private class Scope(List<RenpyCommand> commands, RenpyCommand renpyCommand = null)
         {
             public List<RenpyCommand> Commands { get; } = commands;
             public int? Indentation { get; set; } = null;
-            public RenpyCommand? ScopeHead { get; set; } = renpyCommand;
-            public string? LastSpeaker { get; set; } = null;
+            public RenpyCommand ScopeHead { get; set; } = renpyCommand;
+            public string LastSpeaker { get; set; } = null;
         }
     }
 }

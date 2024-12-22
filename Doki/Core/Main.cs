@@ -1,6 +1,6 @@
 ﻿using Doki.Extensions;
 using Doki.Mods;
-using Doki.RenpyUtils;
+using Doki.Renpie;
 using System;
 using System.IO;
 using System.Linq;
@@ -60,21 +60,14 @@ THE SOFTWARE.
                 for (int i = 0; i < scriptPaths.Count(); i++)
                 {
                     ConsoleUtils.Log("Doki", $"Parsing {scriptPaths[i]}...");
-                    RenpyScriptProcessor.ProcessScriptFromFile(scriptPaths[i]);
+                    ScriptsHandler.ProcessFromFile(scriptPaths[i]);
                     ConsoleUtils.Log("Doki", $"Blocks processed for script");
                 }
 
-                RenpyScriptProcessor.JumpTolabel = contextMod.LabelEntryPoint;
+                ScriptsHandler.JumpTolabel = contextMod.LabelEntryPoint;
             }
 
-            AssetBundle PlusBgmCoarse = AssetUtils.LoadGameBundle("bgm-ddlcplus-coarse"); //for some reason the game doesnt load this in load permanent asset bundles?
-            AssetUtils.AssetBundles.Add("bgm-ddlcplus-coarse", PlusBgmCoarse); //y2k4 :pleading_face: please clean this and maybe turn loading asset bundles and mapping their internal asset names into a func?
-
-            foreach (var asset in PlusBgmCoarse.GetAllAssetNames())
-            {
-                // assetKey -> bundleName -> assetFullPathInBundle
-                AssetUtils.AssetsToBundles[Path.GetFileNameWithoutExtension(asset)] = new Tuple<string, Tuple<string, bool>>("bgm-ddlcplus-coarse", new Tuple<string, bool>(asset, true));
-            }
+            AssetUtils.MapAssetBundle(AssetUtils.LoadGameBundle("bgm-ddlcplus-coarse"), "bgm-ddlcplus-coarse");
 
             foreach (DokiMod mod in DokiModsManager.Mods)
             {
@@ -84,35 +77,16 @@ THE SOFTWARE.
 
                     if (Path.GetExtension(assetBundlePath) != "" && Path.GetExtension(assetBundlePath).ToLower() != "assetbundle")
                     {
-                        if (!AssetUtils.FakeBundles.ContainsKey(mod.ID))
-                        {
-                            AssetUtils.FakeBundles.Add(mod.ID, new ProxyAssetBundle(mod.AssetsPath + "\\bgextended.assetbundles"));
-                            AssetUtils.AssetBundles.Add(mod.ID, AssetUtils.FakeBundles[mod.ID].FakeInstance);
-
-                            ConsoleUtils.Log("Doki", $"Proxying asset bundle for mod ID: {mod.ID}...");
-                        }
-
-                        AssetUtils.FakeBundles[mod.ID].Map(key, assetBundlePath);
-                        AssetUtils.AssetsToBundles[key] = new Tuple<string, Tuple<string, bool>>(mod.ID, new Tuple<string, bool>(assetBundlePath, true));
+                        AssetUtils.HandleFakeBundleAsset(mod, assetBundlePath);
 
                         ConsoleUtils.Log("Doki", $"Mapping asset key: {key} to fake path -> {assetBundlePath}...");
                         continue;
                     }
 
                     ConsoleUtils.Log("Doki", $"Loading mod asset bundle -> {assetBundlePath}");
-                    AssetBundle bundle = AssetUtils.LoadAssetBundle(assetBundlePath);
 
-                    AssetUtils.AssetBundles.Add(key, bundle);
-
-                    foreach (var asset in bundle.GetAllAssetNames())
-                    {
-                        // bundle name, asset key, asset path in bundle
-                        ConsoleUtils.Debug("Doki", $"Fake asset -> {key} -> {asset} -> {Path.GetFileNameWithoutExtension(asset)}");
-
-                        // assetKey -> bundleName -> assetFullPathInBundle
-                        AssetUtils.AssetsToBundles[Path.GetFileNameWithoutExtension(asset)] = new Tuple<string, Tuple<string, bool>>(key, new Tuple<string, bool>(asset, true));
-                    }
-
+                    AssetUtils.MapAssetBundle(AssetUtils.LoadAssetBundle(assetBundlePath), key);
+ 
                     ConsoleUtils.Log("Doki", $"Asset bundle loaded -> {key}");
                 }
             }

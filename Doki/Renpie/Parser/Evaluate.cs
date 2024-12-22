@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Text.RegularExpressions;
 
-namespace RenDisco
+namespace Doki.Renpie.RenDisco
 {
     public static class Evaluate
     {

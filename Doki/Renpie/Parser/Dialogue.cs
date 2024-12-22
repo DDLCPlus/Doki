@@ -2,7 +2,7 @@
 using System;
 using System.Collections.Generic;
 
-namespace Doki.Extensions
+namespace Doki.Renpie.Parser
 {
     public class Dialogue
     {

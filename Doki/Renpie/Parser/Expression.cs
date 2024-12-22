@@ -1,6 +1,6 @@
 using System.Collections.Generic;
 
-namespace RenDisco
+namespace Doki.Renpie.RenDisco
 {
     public abstract class Expression
     {
@@ -40,7 +40,7 @@ namespace RenDisco
     public class ParamPairExpression : Expression
     {
         public override string Type => "param_pair";
-        public string? ParamName { get; set; }
+        public string ParamName { get; set; }
         public Expression ParamValue { get; set; }
     }
 

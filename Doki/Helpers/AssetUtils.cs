@@ -1,4 +1,5 @@
-﻿using HarmonyLib;
+﻿using Doki.Mods;
+using HarmonyLib;
 using RenpyParser;
 using RenPyParser.AssetManagement;
 using System;
@@ -82,19 +83,6 @@ namespace Doki.Extensions
             return secondMethod ? foundBundle.ForceLoadAsset(key, type) : foundBundle.LoadAsset(key, type);
         }
 
-        public static RenpySize CreateSize(int width, int height)
-        {
-            RenpySize ret = new($"size({width}x{height})", null, null, true, true);
-
-            var sizeXProperty = typeof(RenpySize).GetProperty("SizeX", BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public);
-            var sizeYProperty = typeof(RenpySize).GetProperty("SizeY", BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public);
-
-            sizeXProperty?.SetValue(ret, width); // If null, set value
-            sizeYProperty?.SetValue(ret, height); // I had no clue this existed this is fucking cool
-
-            return ret;
-        }
-
         public static ProxyAssetBundle FindProxyBundleByAssetKey(string key)
         {
             foreach(var proxyBundle in FakeBundles)
@@ -131,6 +119,33 @@ namespace Doki.Extensions
             GameObject objResult = (GameObject)LoadFromUnknownBundle(key, typeof(GameObject));
             ConsoleUtils.Debug("Doki", $"Do we have asset in db: {AssetUtils.AssetsToBundles.ContainsKey(key)} - fixLoad");
             return objResult;
+        }
+
+        public static void MapAssetBundle(AssetBundle bundle, string bundleName)
+        {
+            AssetBundles.Add(bundleName, bundle);
+
+            foreach (var asset in bundle.GetAllAssetNames())
+            {
+                // assetKey -> bundleName -> assetFullPathInBundle
+                AssetsToBundles[Path.GetFileNameWithoutExtension(asset)] = new Tuple<string, Tuple<string, bool>>(bundleName, new Tuple<string, bool>(asset, true));
+            }
+        }
+
+        public static void HandleFakeBundleAsset(DokiMod mod, string assetPath)
+        {
+            if (!FakeBundles.ContainsKey(mod.ID))
+            {
+                FakeBundles.Add(mod.ID, new ProxyAssetBundle(mod.AssetsPath + "\\bgextended.assetbundles"));
+                AssetBundles.Add(mod.ID, FakeBundles[mod.ID].FakeInstance);
+
+                ConsoleUtils.Log("Doki", $"Proxying asset bundle for mod ID: {mod.ID}...");
+            }
+
+            string key = Path.GetFileNameWithoutExtension(assetPath);
+
+            FakeBundles[mod.ID].Map(key, assetPath);
+            AssetsToBundles[key] = new Tuple<string, Tuple<string, bool>>(mod.ID, new Tuple<string, bool>(assetPath, true));
         }
     }
 }
