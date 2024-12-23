@@ -15,10 +15,12 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <None Remove="Properties\0Harmony.dll" />
     <None Remove="Properties\base.assetbundle" />
   </ItemGroup>
 
   <ItemGroup>
+    <EmbeddedResource Include="Properties\0Harmony.dll" />
     <EmbeddedResource Include="Properties\base.assetbundle" />
   </ItemGroup>
 
