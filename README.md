@@ -7,7 +7,7 @@ Eventually, we imagine a future where it'd be as easy to mod Plus as it is to mo
 This is not 100% complete and is more of a proof of concept. <br> This project is also dedicated to Kizby who passed away in late 2022, she's the one who inspired us to mod Plus way back in July 2021 with her TestDDLCMod.
 
 # CREDITS
-Kizby - References for python unpickling process in .NET - Planned for future translation working with .rpa & .rpyc files<br>
+Kizby - Unpickler.cs and some .rpa & .rpyc references<br>
 Yedrah - Custom background image (In the DokiModTest's asset bundle) <br>
 aaartrtrt - RenDisco (Which we have modified slightly to work with DDLC+'s renpy stuff) <br>
 
