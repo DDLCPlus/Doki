@@ -16,9 +16,10 @@ namespace Doki.Extensions
         public AssetBundle FakeInstance { get; set; }
         public Dictionary<string, string> AssetsMap = []; // asset key -> asset path
 
-        public ProxyAssetBundle(string realBundleReferencePath)
+        public ProxyAssetBundle()
         {
-            FakeInstance = AssetUtils.LoadAssetBundle(realBundleReferencePath);
+            FakeInstance = AssetUtils.LoadInternalAssetBundle();
+
             //FakeInstance = (AssetBundle)AccessTools.Constructor(typeof(AssetBundle)).Invoke([]);
         }
 

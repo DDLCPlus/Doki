@@ -163,7 +163,7 @@ namespace Doki.Extensions
 
                 if (!FakeBundles.ContainsKey(bundleName))
                 {
-                    FakeBundles.Add(bundleName, new ProxyAssetBundle("base.assetbundles"));
+                    FakeBundles.Add(bundleName, new ProxyAssetBundle());
                     AssetBundles.Add(bundleName, FakeBundles[bundleName].FakeInstance);
 
                     ConsoleUtils.Log("Doki", $"Turning archive file asset {assetKey} into fake bundle with {assetPath} as the path inside...");
@@ -192,7 +192,7 @@ namespace Doki.Extensions
         {
             if (!FakeBundles.ContainsKey(mod.ID))
             {
-                FakeBundles.Add(mod.ID, new ProxyAssetBundle("base.assetbundles"));
+                FakeBundles.Add(mod.ID, new ProxyAssetBundle());
                 AssetBundles.Add(mod.ID, FakeBundles[mod.ID].FakeInstance);
 
                 ConsoleUtils.Log("Doki", $"Proxying asset bundle for mod ID: {mod.ID}...");

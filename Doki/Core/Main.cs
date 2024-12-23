@@ -50,7 +50,7 @@ THE SOFTWARE.
 
             ConsoleUtils.Log("Doki", "RenDisco parser setup.\nLoading mods...");
             DeleteAllContents("Doki\\TranslatedModAssets");
-            AssetUtils.LoadInternalAssetBundle();
+
             DokiModsManager.LoadMods();
 
             DokiMod contextMod = DokiModsManager.Mods.FirstOrDefault(x => x.ModifiesContext);
@@ -66,7 +66,6 @@ THE SOFTWARE.
                     ScriptsHandler.ProcessFromFile(scriptPaths[i].Contains(".rpyc"), scriptPaths[i]);
                     ConsoleUtils.Log("Doki", $"Blocks processed for script");
                 }
-
                 ScriptsHandler.JumpTolabel = contextMod.LabelEntryPoint;
             }
 
