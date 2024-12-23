@@ -49,8 +49,6 @@ THE SOFTWARE.
             }
 
             DeleteAllContents("Doki\\TranslatedModAssets");
-
-            LoadHarmony();
             DokiModsManager.LoadMods();
 
             DokiMod contextMod = DokiModsManager.Mods.FirstOrDefault(x => x.ModifiesContext);
@@ -105,17 +103,6 @@ THE SOFTWARE.
             foreach (string subDirectory in Directory.GetDirectories(directoryPath))
             {
                 Directory.Delete(subDirectory, true);
-            }
-        }
-
-        private void LoadHarmony()
-        {
-            ConsoleUtils.Log("Doki", "Loading Harmony...");
-            using (Stream stream = Assembly.GetExecutingAssembly().GetManifestResourceStream("Doki.Properties.0Harmony.dll"))
-            using (MemoryStream tempStream = new MemoryStream((int)stream.Length))
-            {
-                stream.CopyTo(tempStream);
-                Assembly.Load(tempStream.ToArray());
             }
         }
     }
