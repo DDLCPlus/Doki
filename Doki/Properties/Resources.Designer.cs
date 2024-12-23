@@ -63,6 +63,16 @@ namespace Doki.Properties {
         /// <summary>
         ///   Looks up a localized resource of type System.Byte[].
         /// </summary>
+        internal static byte[] _0Harmony {
+            get {
+                object obj = ResourceManager.GetObject("0Harmony", resourceCulture);
+                return ((byte[])(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Byte[].
+        /// </summary>
         internal static byte[] basebundle {
             get {
                 object obj = ResourceManager.GetObject("basebundle", resourceCulture);
