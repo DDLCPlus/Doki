@@ -47,7 +47,7 @@ namespace Doki.Extensions
                 HarmonyInstance.Patch(typeof(RenpyScript).GetMethods().Where(x => x.Name == "Init").Last(), postfix: new HarmonyMethod(typeof(PatchUtils).GetMethod("InitPatch", BindingFlags.Static | BindingFlags.NonPublic)));
                 HarmonyInstance.Patch(typeof(Lines).GetMethod("GetValue"), prefix: new HarmonyMethod(typeof(PatchUtils).GetMethod("HistoryPatch", BindingFlags.Static | BindingFlags.NonPublic)));
                 HarmonyInstance.Patch(typeof(ActiveImage).GetMethod("ChangeAssetImmediate", BindingFlags.NonPublic | BindingFlags.Instance), postfix: new HarmonyMethod(typeof(PatchUtils).GetMethod("ChangeAssetImmediatePostPatch", BindingFlags.Static | BindingFlags.NonPublic)));
-                //HarmonyInstance.Patch(typeof(RenpyScriptExecution).GetMethod("Run"), prefix: new HarmonyMethod(typeof(PatchUtils).GetMethod("DefinitionsPatch", BindingFlags.Static | BindingFlags.NonPublic))); -- hella unstable
+                HarmonyInstance.Patch(typeof(RenpyMainMenuUI).GetMethod("get_refreshMainMenu"), prefix: new HarmonyMethod(typeof(PatchUtils).GetMethod("get_refreshMainMenuPatch", BindingFlags.Static | BindingFlags.NonPublic)));
 
                 foreach (var mod in DokiModsManager.Mods)
                 {
@@ -83,17 +83,13 @@ namespace Doki.Extensions
             }
         }
 
-        //private static void DefinitionsPatch(RenpyScriptExecution __instance, RenpyExecutionContext ____executionContext)
-        //{
-        //    foreach (var customDefinition in RenpyUtils.RenpyUtils.CustomDefinitions.Where(x => x.Type == DefinitionType.Unknown))
-        //    {
-        //        string name = customDefinition.Name;
-
-        //        DataValue value = SimpleExpressionEngine.Parser.Parse(customDefinition.Value).Eval(____executionContext);
-
-        //        ____executionContext.SetVariable(name, value);
-        //    }
-        //}
+        //Fixes the empty chars on the menu & missing logo, etc at the end of the script
+        private static bool get_refreshMainMenuPatch(ref bool __result)
+        {
+            // RenpyMainMenuUI.playMainMenuTheme = true; -- uh find out a proper place to put this
+            __result = true;
+            return false;
+        }
 
         private static void ChangeAssetImmediatePostPatch(ActiveImage __instance, string name, GameObject parent, bool force = false)
         {
