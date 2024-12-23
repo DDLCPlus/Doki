@@ -109,7 +109,6 @@ namespace Doki.Extensions
                     var parsedCompositeValue = script.ParseFixedCompositeSprite(definition.Value);
 
                     GameObject compositeObject = new GameObject(name);
-
                     compositeObject.transform.SetParent(__instance.Object.transform, false);
                     compositeObject.transform.localPosition = Vector3.zero;
                     compositeObject.transform.localScale = Vector3.one;
@@ -117,33 +116,26 @@ namespace Doki.Extensions
                     for (int i = 0; i < parsedCompositeValue.AssetPaths.Length; i++)
                     {
                         string assetPath = parsedCompositeValue.AssetPaths[i];
-
                         Vector2Int offset = parsedCompositeValue.Offsets[i];
-
                         GameObject spriteHolder = new GameObject($"Sprite {assetPath}");
 
                         spriteHolder.transform.SetParent(compositeObject.transform, false);
-
                         spriteHolder.transform.localPosition = new Vector3(Mathf.Round(offset.x), Mathf.Round(offset.y), 0);
                         spriteHolder.transform.localScale = Vector3.one;
 
                         SpriteRenderer renderer = spriteHolder.AddComponent<SpriteRenderer>();
-
                         ProxyAssetBundle proxyBundle = AssetUtils.FindProxyBundleByAssetKey(Path.GetFileNameWithoutExtension(assetPath));
 
                         if (proxyBundle != null)
                         {
                             string outPath = proxyBundle.ToPath(Path.GetFileNameWithoutExtension(assetPath));
-
                             renderer.sprite = (Sprite)proxyBundle.Load("UnityEngine.Sprite", outPath);
-
                             renderer.sprite.texture.filterMode = FilterMode.Trilinear;
                             renderer.sprite.texture.wrapMode = TextureWrapMode.Clamp;
                         }
                         else
                         {
                             AssetBundle realBundle = AssetUtils.AssetBundles[AssetUtils.AssetsToBundles[Path.GetFileNameWithoutExtension(assetPath)].Item2.Item1];
-
                             if (realBundle == null)
                                 continue;
 

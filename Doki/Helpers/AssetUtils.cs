@@ -52,6 +52,28 @@ namespace Doki.Extensions
             return bundle;
         }
 
+        public static AssetBundle LoadInternalAssetBundle()
+        {
+            AssetBundle bundle = null;
+
+            try
+            {
+                using (Stream stream = Assembly.GetExecutingAssembly().GetManifestResourceStream("Doki.Properties.base.assetbundle"))
+                using (MemoryStream tempStream = new MemoryStream((int)stream.Length))
+                {
+                    stream.CopyTo(tempStream);
+                    bundle = (AssetBundle)loadFromMemoryMethod.Invoke(null, [tempStream.ToArray(), (uint)0]);
+                    bundle.hideFlags |= HideFlags.DontUnloadUnusedAsset;
+                }
+            }
+            catch (Exception e)
+            {
+                ConsoleUtils.Error("Doki.AssetUtils", e, $"Failed to load internal asset bundle: {e.Message}");
+            }
+
+            return bundle;
+        }
+
         public static T ForceLoadAsset<T>(this AssetBundle bundle, string name) where T : UnityEngine.Object =>
             (T)loadAssetInternal.Invoke(bundle, [name, typeof(T)]);
 
@@ -89,7 +111,6 @@ namespace Doki.Extensions
             foreach(var proxyBundle in FakeBundles)
             {
                 var bundle = proxyBundle.Value;
-
                 if (bundle.Exists(key))
                     return bundle;
             }
@@ -160,10 +181,9 @@ namespace Doki.Extensions
 
                 return true;
             }
-            catch(Exception ex)
+            catch (Exception ex)
             {
                 ConsoleUtils.Error("AssetUtils.SetupFromArchiveFile", ex);
-
                 return false;
             }
         }
