@@ -10,6 +10,8 @@ using System.Text;
 using System.Threading.Tasks;
 using static RenPyParser.Sprites.CompositeSpriteParser;
 using UnityEngine;
+using System.IO;
+using SimpleExpressionEngine;
 
 namespace Doki.Renpie
 {
@@ -397,12 +399,10 @@ namespace Doki.Renpie
             }
         }
 
-        public bool Process(RenDisco.RenpyParser parser, string path)
+        private bool DoFromCommands(List<RenpyCommand> Commands)
         {
             try
             {
-                List<RenpyCommand> Commands = parser.ParseFromFile(path);
-
                 if (Commands.Count() == 0)
                     return false;
 
@@ -446,11 +446,15 @@ namespace Doki.Renpie
 
                 return true;
             }
-            catch(Exception ex)
+            catch (Exception ex)
             {
                 ConsoleUtils.Error("Script.Process", ex);
                 return false;
             }
         }
+
+        public bool Process(RenDisco.RenpyParser parser, string path) => DoFromCommands(parser.ParseFromFile(path));
+
+        public bool Process(RenDisco.RenpyParser parser, byte[] contents) => DoFromCommands(parser.Parse(System.Text.Encoding.UTF8.GetString(contents)));
     }
 }

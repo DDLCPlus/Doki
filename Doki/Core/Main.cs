@@ -33,6 +33,20 @@ THE SOFTWARE.
     */
     public class Main : MonoBehaviour
     {
+        private void DeleteAllContents(string directoryPath)
+        {
+            foreach (string file in Directory.GetFiles(directoryPath))
+            {
+                File.Delete(file);
+            }
+
+            foreach (string subDirectory in Directory.GetDirectories(directoryPath))
+            {
+                DeleteAllContents(subDirectory);
+                Directory.Delete(subDirectory);
+            }
+        }
+
         public void Awake()
         {
             if (!Directory.Exists("Doki") && !Directory.Exists("Doki\\Mods"))
@@ -41,10 +55,13 @@ THE SOFTWARE.
 
                 Directory.CreateDirectory("Doki");
                 Directory.CreateDirectory("Doki\\Mods");
+                Directory.CreateDirectory("Doki\\TranslatedModAssets");
 
                 ConsoleUtils.Log("Doki", "First time setup complete! To install a mod, drag & drop it into the \"Mods\" folder which can be found within the \"Doki\" folder in your game directory.");
                 return;
             }
+
+            DeleteAllContents("Doki\\TranslatedModAssets");
 
             ConsoleUtils.Log("Doki", "RenDisco parser setup.\nLoading mods...");
 
@@ -60,7 +77,7 @@ THE SOFTWARE.
                 for (int i = 0; i < scriptPaths.Count(); i++)
                 {
                     ConsoleUtils.Log("Doki", $"Parsing {scriptPaths[i]}...");
-                    ScriptsHandler.ProcessFromFile(scriptPaths[i]);
+                    ScriptsHandler.ProcessFromFile(scriptPaths[i].Contains(".rpyc"), scriptPaths[i]);
                     ConsoleUtils.Log("Doki", $"Blocks processed for script");
                 }
 

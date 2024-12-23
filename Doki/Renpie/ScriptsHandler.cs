@@ -21,11 +21,32 @@ namespace Doki.Renpie
             Parser = new RenDisco.RenpyParser();
         }
 
-        public static bool ProcessFromFile(string pathToScript)
+        public static bool ProcessFromFile(bool IsRpyc, string pathToScript)
         {
+            if (IsRpyc)
+                return false; //to-do
+
             Script retScript = new Script();
 
             bool outCome = retScript.Process(Parser, pathToScript);
+
+            if (outCome)
+            {
+                LoadedScripts.Add(retScript);
+                return true;
+            }
+
+            return false;
+        }
+
+        public static bool ProcessFromBytes(bool IsRpyc, byte[] Contents)
+        {
+            if (IsRpyc)
+                return false; //to-do
+
+            Script retScript = new Script();
+
+            bool outCome = retScript.Process(Parser, Contents);
 
             if (outCome)
             {
