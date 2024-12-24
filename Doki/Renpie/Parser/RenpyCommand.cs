@@ -115,6 +115,8 @@ namespace Doki.Renpie.RenDisco
     {
         public override string Type => "menu";
 
+        public string DialogueText { get; set; }
+
         /// <summary>
         /// Gets or sets the list of choices in the menu.
         /// </summary>
@@ -132,6 +134,8 @@ namespace Doki.Renpie.RenDisco
         /// Gets or sets the text for the menu choice.
         /// </summary>
         public string OptionText { get; set; }
+
+        public string Condition { get; set; }
 
         /// <summary>
         /// Gets or sets the list of commands to execute if this choice is selected.
@@ -157,6 +161,27 @@ namespace Doki.Renpie.RenDisco
         public List<RenpyCommand> Content { get; set; } = [];
 
         public int IndexOfConditionMet { get; set; }
+    }
+
+    public abstract class PythonBlock : RenpyCommand
+    {
+        public override string Type => "python";
+        public List<RenpyCommand> Content { get; set; } = [];
+    }
+
+    public class PythonEarlyBlock : PythonBlock
+    {
+        public override string Type => "python early";
+    }
+
+    public class PythonRenpyBlock : PythonBlock
+    {
+        public override string Type => "python renpy";
+    }
+
+    public class InitPythonBlock : PythonBlock
+    {
+        public override string Type => "init python";
     }
 
     /// <summary>

@@ -74,7 +74,7 @@ namespace Doki.Renpie.RenDisco
 
                 // Process different Ren'Py command types in the line, and adjust scope if needed
                 if (ParseLabel(trimmedLine, ref scopeStack, indentationLevel)) continue;
-                if (ParseScene(trimmedLine, scopeStack.Peek())) continue;
+                if (ParseScene(trimmedLine, scopeStack.Peek())) continue;    
                 if (ParseDefine(trimmedLine, scopeStack.Peek())) continue;
                 if (ParseImage(trimmedLine, scopeStack.Peek())) continue;
                 if (ParseWith(trimmedLine, scopeStack.Peek())) continue;
@@ -519,14 +519,45 @@ namespace Doki.Renpie.RenDisco
 
         private static bool ParseMenuChoices(string trimmedLine, Stack<Scope> scopeStack)
         {
-            if (scopeStack.Peek().ScopeHead is Menu menu &&
-                trimmedLine.StartsWith("\"") && trimmedLine.EndsWith(":"))
+            if (scopeStack.Peek().ScopeHead is Menu menu)
             {
-                string optionText = trimmedLine.Substring(1, trimmedLine.Length - 3);
-                var choice = new MenuChoice { OptionText = optionText };
-                menu.Choices.Add(choice);
-                scopeStack.Push(new Scope(choice.Response, choice));
-                return true;
+                if (!trimmedLine.EndsWith(":") && trimmedLine.StartsWith("\""))
+                {
+                    menu.DialogueText = menu.DialogueText == null ? trimmedLine : menu.DialogueText + "\n" + trimmedLine;
+
+                    return true;
+                }
+
+                if (trimmedLine.StartsWith("\"") && trimmedLine.EndsWith(":"))
+                {
+                    string[] parts = trimmedLine.Split(new[] { ":" }, StringSplitOptions.RemoveEmptyEntries);
+                    string optionAndCondition = parts[0].Trim();
+
+                    string optionText;
+                    string condition = null;
+
+                    if (optionAndCondition.Contains("if"))
+                    {
+                        string[] optionParts = optionAndCondition.Split(new[] { "if" }, StringSplitOptions.None);
+
+                        optionText = optionParts[0].Replace("\"", "");
+                        condition = optionParts.Length > 1 ? optionParts[1].Trim() : null;
+
+                        condition = "if " + condition;
+                    }
+                    else
+                        optionText = optionAndCondition.Trim('"');
+
+                    var choice = new MenuChoice
+                    {
+                        OptionText = optionText,
+                        Condition = condition
+                    };
+
+                    menu.Choices.Add(choice);
+                    scopeStack.Push(new Scope(choice.Response, choice));
+                    return true;
+                }
             }
 
             return false;

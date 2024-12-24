@@ -12,6 +12,7 @@ using static RenPyParser.Sprites.CompositeSpriteParser;
 using UnityEngine;
 using System.IO;
 using SimpleExpressionEngine;
+using System.ComponentModel;
 
 namespace Doki.Renpie
 {
@@ -311,6 +312,73 @@ namespace Doki.Renpie
             return retLines;
         }
 
+        private List<Line> HandleMenuStatement(string label, int currentLine, List<RenpyCommand> commands, Menu menu)
+        {
+            List<Line> RetLines = [];
+
+            if (!string.IsNullOrEmpty(menu.DialogueText))
+            {
+                string firstLine = menu.DialogueText.Split(new[] { '\n' }, StringSplitOptions.RemoveEmptyEntries).FirstOrDefault();
+
+                if (!string.IsNullOrEmpty(firstLine))
+                {
+                    string characterTag = null;
+                    string[] splitLine = firstLine.Split(['"'], 2);
+
+                    if (splitLine.Length > 1)
+                    {
+                        string possibleTag = splitLine[0].Trim();
+
+                        if (!string.IsNullOrEmpty(possibleTag))
+                            characterTag = possibleTag;
+                    }
+
+                    RetLines.Add(MakeDialogueLine(label, firstLine, false, characterTag, string.IsNullOrEmpty(characterTag) ? "menu-caption" : "say", false));
+                }
+            }
+
+            var gotoMenu = new RenpyGoToLine(-1);
+
+            RetLines.Add(gotoMenu);
+
+            var endTarget = new RenpyNOP();
+
+            var menuInputEntries = new List<RenpyMenuInputEntry>();
+
+            foreach (var entry in menu.Choices)
+            {
+                Line menuTarget = null;
+
+                var targetIndex = RetLines.Count;
+
+                Dialogue.Add(new Parser.Dialogue(label, "", entry.OptionText, false, false, false, "menu-caption"));
+
+                int id = entry.OptionText.GetHashCode();
+
+                TextIDs.Add(id);
+
+                var gotoEnd = new RenpyGoToLine(-1);
+
+                RetLines.Add(gotoEnd);
+                Jumps.Add(gotoEnd, endTarget);
+
+                menuTarget = RetLines[targetIndex];
+
+                var menuInputEntry = new RenpyMenuInputEntry(id, true, string.IsNullOrEmpty(entry.Condition) ? null : SimpleExpressionEngine.Parser.Compile(entry.Condition), -1);
+
+                menuInputEntries.Add(menuInputEntry);
+
+                Jumps.Add(menuInputEntry, menuTarget);
+            }
+
+            var menuInput = new RenpyMenuInput(label, menuInputEntries, false);
+            RetLines.Add(menuInput);
+            Jumps.Add(gotoMenu, menuInput);
+            RetLines.Add(endTarget);
+
+            return RetLines;
+        }
+
         private RenpyBlock Translate(string label, List<RenpyCommand> commandsPassed)
         {
             try
@@ -377,6 +445,9 @@ namespace Doki.Renpie
                                 Lines.Add(new RenpyOneLinePython(define.Raw));
                             else
                                 Definitions.Add(new RenpyDefinition(define.Name, define.Value.Replace("\"", ""), define.Raw.Contains("Character(") ? DefinitionType.Character : DefinitionType.Unknown));
+                            break;
+                        case Menu menu:
+                            Lines.AddRange(HandleMenuStatement(label, currentLine, commands, menu));
                             break;
                     }
                 }
