@@ -30,8 +30,6 @@ namespace Doki.Mods
                     {
                         try
                         {
-                            ConsoleUtils.Log("DokiModsManager", $"Trying to load Doki Mod: {Path.GetFileNameWithoutExtension(file)}");
-
                             var assembly = Assembly.LoadFrom(Path.GetFullPath(file));
                             var types = assembly.GetTypes().Where(x => x.IsSubclassOf(typeof(DokiMod)));
 
@@ -42,6 +40,11 @@ namespace Doki.Mods
                             }
 
                             DokiMod mod = Activator.CreateInstance(types.First()) as DokiMod;
+
+                            if (mod.Disabled)
+                                continue;
+
+                            ConsoleUtils.Log("DokiModsManager", $"Trying to load Doki Mod: {Path.GetFileNameWithoutExtension(file)}");
 
                             if (Directory.Exists($"{directory}\\Scripts") && Directory.GetFiles($"{directory}\\Scripts").Length > 0)
                             {

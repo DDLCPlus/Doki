@@ -2,6 +2,7 @@
 using Doki.Renpie;
 using Doki.Renpie.Parser;
 using HarmonyLib;
+using RenpyLauncher;
 using RenpyParser;
 using RenPyParser.AssetManagement;
 using RenPyParser.Images;
@@ -15,6 +16,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Reflection;
+using System.Xml.Linq;
 using UnityEngine;
 using UnityPS;
 
@@ -48,6 +50,8 @@ namespace Doki.Extensions
                 HarmonyInstance.Patch(typeof(Lines).GetMethod("GetValue"), prefix: new HarmonyMethod(typeof(PatchUtils).GetMethod("HistoryPatch", BindingFlags.Static | BindingFlags.NonPublic)));
                 HarmonyInstance.Patch(typeof(ActiveImage).GetMethod("ChangeAssetImmediate", BindingFlags.NonPublic | BindingFlags.Instance), postfix: new HarmonyMethod(typeof(PatchUtils).GetMethod("ChangeAssetImmediatePostPatch", BindingFlags.Static | BindingFlags.NonPublic)));
                 HarmonyInstance.Patch(typeof(RenpyMainMenuUI).GetMethod("get_refreshMainMenu"), prefix: new HarmonyMethod(typeof(PatchUtils).GetMethod("get_refreshMainMenuPatch", BindingFlags.Static | BindingFlags.NonPublic)));
+                HarmonyInstance.Patch(typeof(FileBrowserApp).GetMethod("get_AllowRunResetSh", BindingFlags.NonPublic | BindingFlags.Instance), prefix: new HarmonyMethod(typeof(PatchUtils).GetMethod("get_AllowRunResetShPatch", BindingFlags.Static | BindingFlags.NonPublic)));
+                HarmonyInstance.Patch(typeof(RenpyScript).GetMethod("HandleInLinePython"), prefix: new HarmonyMethod(typeof(PatchUtils).GetMethod("InLinePythonPatch", BindingFlags.Static | BindingFlags.NonPublic)));
 
                 foreach (var mod in DokiModsManager.Mods)
                 {
@@ -83,10 +87,42 @@ namespace Doki.Extensions
             }
         }
 
+        private static bool InLinePythonPatch(RenpyScript __instance, InLinePython InlinePython, ref object __result)
+        {
+            DokiMod mod = DokiModsManager.Mods[DokiModsManager.ActiveScriptModifierIndex];
+
+            if (mod == null)
+                return true;
+
+            foreach (Script script in ScriptsHandler.LoadedScripts)
+            {
+                int hashCode = InlinePython.hash;
+
+                if (script.InlinePython.TryGetValue(hashCode, out string functionName))
+                {
+                    MethodInfo methodInfo = mod.GetType().GetMethod(functionName, BindingFlags.NonPublic | BindingFlags.Instance);
+
+                    if (methodInfo != null)
+                    {
+                        __result = methodInfo.Invoke(mod, null);
+                        return false;
+                    }
+                }
+            }
+
+            return true;
+        }
+
         //Fixes the empty chars on the menu & missing logo, etc at the end of the script
         private static bool get_refreshMainMenuPatch(ref bool __result)
         {
             // RenpyMainMenuUI.playMainMenuTheme = true; -- uh find out a proper place to put this
+            __result = true;
+            return false;
+        }
+
+        private static bool get_AllowRunResetShPatch(ref bool __result)
+        {
             __result = true;
             return false;
         }

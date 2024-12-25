@@ -13,6 +13,7 @@ namespace DokiModTest
         public override string Author => "Doki Dev Team";
         public override string Version => "1.0";
         public override string LabelEntryPoint => "startmod";
+        public override bool Disabled => false;
 
         public override Dictionary<MethodBase, HarmonyMethod> Prefixes => new Dictionary<MethodBase, HarmonyMethod>()
         {

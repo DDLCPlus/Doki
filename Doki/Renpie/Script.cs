@@ -25,7 +25,8 @@ namespace Doki.Renpie
         public Dictionary<object, Line> Jumps = [];
         public List<string> Sounds = [];
         public Dictionary<string, Tuple<BlockEntryPoint, RenpyBlock>> BlocksDict = []; //Block label -> Commands translated
-
+        public Dictionary<int, string> InlinePython = [];
+        
         public Parser.Dialogue RetrieveLineFromText(int textID)
         {
             foreach (var line in Dialogue)
@@ -379,6 +380,51 @@ namespace Doki.Renpie
             return RetLines;
         }
 
+        private List<Line> HandleDefinitionStatement(string label, Define define)
+        {
+            List<Line> retLines = new List<Line>();
+
+            if (define.Definition != null && !string.IsNullOrEmpty(define.Definition.MethodName))
+            {
+                RenpyInlinePython inlinePy = new RenpyInlinePython(define.Definition.MethodName, label);
+
+                retLines.Add(inlinePy);
+            }
+
+
+            if (define.Raw.Contains("$"))
+                retLines.Add(new RenpyOneLinePython(define.Raw));
+            else
+            {
+                if (define.Raw.Contains("Character("))
+                    Definitions.Add(new RenpyDefinition(define.Name, define.Value.Replace("\"", ""), DefinitionType.Character));
+                else
+                {
+                    bool isString = true;
+
+                    if (int.TryParse(define.Value, out int _))
+                        isString = false;
+                    else if (float.TryParse(define.Value, out float _))
+                        isString = false;
+                    else if (double.TryParse(define.Value, out double _))
+                        isString = false;
+                    else if (define.Definition != null && !string.IsNullOrEmpty(define.Definition.MethodName))
+                        isString = false;
+
+                    string retString = $"$ {define.Name} = ";
+
+                    if (isString)
+                        retString += "\"" + define.Value + "\"";
+                    else
+                        retString += define.Value;
+
+                    retLines.Add(new RenpyOneLinePython(retString)); //fuck you *undefines your define and turns it into a variable assignment*
+                }
+            }
+
+            return retLines;
+        }
+
         private RenpyBlock Translate(string label, List<RenpyCommand> commandsPassed)
         {
             try
@@ -441,10 +487,10 @@ namespace Doki.Renpie
                             Lines.Add(new RenpyReturn());
                             break;
                         case Define define:
-                            if (define.Raw.Contains("$"))
-                                Lines.Add(new RenpyOneLinePython(define.Raw));
-                            else
-                                Definitions.Add(new RenpyDefinition(define.Name, define.Value.Replace("\"", ""), define.Raw.Contains("Character(") ? DefinitionType.Character : DefinitionType.Unknown));
+                            var DefineLines = HandleDefinitionStatement(label, define);
+
+                            if (DefineLines.Count > 0)
+                                Lines.AddRange(DefineLines);
                             break;
                         case Menu menu:
                             Lines.AddRange(HandleMenuStatement(label, currentLine, commands, menu));
