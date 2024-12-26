@@ -26,7 +26,8 @@ namespace Doki.Renpie
         public List<string> Sounds = [];
         public Dictionary<string, Tuple<BlockEntryPoint, RenpyBlock>> BlocksDict = []; //Block label -> Commands translated
         public Dictionary<int, string> InlinePython = [];
-        
+        private System.Random random = new System.Random();
+
         public Parser.Dialogue RetrieveLineFromText(int textID)
         {
             foreach (var line in Dialogue)
@@ -425,6 +426,48 @@ namespace Doki.Renpie
             return retLines;
         }
 
+        private string RandomString(int length)
+        {
+            const string chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+            return new string(Enumerable.Repeat(chars, length)
+                .Select(s => s[random.Next(s.Length)]).ToArray());
+        }
+
+        private List<Line> HandleUnsupported(string label, Unsupported unsupported)
+        {
+            List<Line> retLines = new List<Line>();
+
+            //Special command for DDLC+ mods, invoke function_name - Basically, converts the function_name to a hash code, and maps it.
+            // A RenpyInLinePython is added in its place. When the game gets to it, it'll invoke the function from our mapped table.
+
+            if (unsupported.Raw.StartsWith("invoke"))
+            {
+                string[] invokeArguments = unsupported.Raw.Split(' ');
+
+                if (invokeArguments.Length > 0)
+                {
+                    string function_name = invokeArguments[1];
+
+                    RenpyInlinePython inlinePy = new(RandomString(30), label);
+
+                    InLinePython inlinePython = (InLinePython)inlinePy.GetPrivateField("m_InlinePython");
+
+                    int hashCode = function_name.GetHashCode();
+
+                    inlinePython.hash = hashCode;
+                    inlinePython.functionName = function_name;
+
+                    InlinePython.Add(hashCode, function_name);
+
+                    inlinePy.SetPrivateField("m_InlinePython", inlinePython); //I actually don't know if it would've updated the fields, but just to be sure :D
+
+                    retLines.Add(inlinePy);
+                }
+            }
+
+            return retLines;
+        }
+
         private RenpyBlock Translate(string label, List<RenpyCommand> commandsPassed)
         {
             try
@@ -494,6 +537,12 @@ namespace Doki.Renpie
                             break;
                         case Menu menu:
                             Lines.AddRange(HandleMenuStatement(label, currentLine, commands, menu));
+                            break;
+                        case Unsupported unsupported:
+                            var UnsupportedLines = HandleUnsupported(label, unsupported);
+
+                            if (UnsupportedLines.Count > 0)
+                                Lines.AddRange(UnsupportedLines);
                             break;
                     }
                 }

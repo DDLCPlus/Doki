@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Security.AccessControl;
 using System.Text.RegularExpressions;
 using System.Xml.Linq;
 using UnityEngine;
@@ -90,6 +91,7 @@ namespace Doki.Renpie.RenDisco
                 if (ParseDialogue(trimmedLine, scopeStack.Peek())) continue;
                 if (ParseNarration(trimmedLine, scopeStack.Peek())) continue;
                 if (ParseReturn(trimmedLine, scopeStack.Peek())) continue;
+                if (ParseUnhandled(trimmedLine, scopeStack.Peek())) continue;
             }
 
             return commands;
@@ -610,6 +612,16 @@ namespace Doki.Renpie.RenDisco
             }
 
             return false;
+        }
+
+        private static bool ParseUnhandled(string trimmedLine, Scope currentScope)
+        {
+            currentScope.Commands.Add(new Unsupported()
+            {
+                Raw = trimmedLine.Trim()
+            });
+
+            return true;
         }
 
         #endregion

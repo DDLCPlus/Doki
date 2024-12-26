@@ -1,6 +1,7 @@
 ﻿using Doki.Mods;
 using HarmonyLib;
 using RenpyLauncher;
+using System;
 using System.Collections.Generic;
 using System.Reflection;
 
@@ -30,6 +31,16 @@ namespace DokiModTest
                 new HarmonyLib.HarmonyMethod(typeof(DokiModTest).GetMethod("SkipToLoginPatch", BindingFlags.Static | BindingFlags.NonPublic))
             }
         };
+
+        private bool fix_menu_stuff()
+        {
+            RenpyMainMenuUI.playMainMenuTheme = true;
+            RenpyMainMenuUI.refreshMainMenu = true;
+
+            Console.WriteLine("Trying to fix menu stuff with the help of inline \"python function\"!");
+
+            return true;
+        }
 
         private static bool QuitPatch(ref bool __result)
         {

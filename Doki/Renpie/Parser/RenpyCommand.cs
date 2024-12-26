@@ -63,6 +63,17 @@ namespace Doki.Renpie.RenDisco
         public override string Type => "return";
     }
 
+    /// <summary>
+    /// Unsupported renpy command, needs to be implemented. Raw line is kept in tact for any potential usage.
+    /// </summary>
+    
+    public class Unsupported : RenpyCommand
+    {
+        public override string Type => "unsupported";
+
+        public string Raw { get; set; }
+    }
+
 
     /// <summary>
     /// Represents a dialogue command where a character speaks.

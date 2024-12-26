@@ -49,7 +49,6 @@ namespace Doki.Extensions
                 HarmonyInstance.Patch(typeof(RenpyScript).GetMethods().Where(x => x.Name == "Init").Last(), postfix: new HarmonyMethod(typeof(PatchUtils).GetMethod("InitPatch", BindingFlags.Static | BindingFlags.NonPublic)));
                 HarmonyInstance.Patch(typeof(Lines).GetMethod("GetValue"), prefix: new HarmonyMethod(typeof(PatchUtils).GetMethod("HistoryPatch", BindingFlags.Static | BindingFlags.NonPublic)));
                 HarmonyInstance.Patch(typeof(ActiveImage).GetMethod("ChangeAssetImmediate", BindingFlags.NonPublic | BindingFlags.Instance), postfix: new HarmonyMethod(typeof(PatchUtils).GetMethod("ChangeAssetImmediatePostPatch", BindingFlags.Static | BindingFlags.NonPublic)));
-                HarmonyInstance.Patch(typeof(RenpyMainMenuUI).GetMethod("get_refreshMainMenu"), prefix: new HarmonyMethod(typeof(PatchUtils).GetMethod("get_refreshMainMenuPatch", BindingFlags.Static | BindingFlags.NonPublic)));
                 HarmonyInstance.Patch(typeof(FileBrowserApp).GetMethod("get_AllowRunResetSh", BindingFlags.NonPublic | BindingFlags.Instance), prefix: new HarmonyMethod(typeof(PatchUtils).GetMethod("get_AllowRunResetShPatch", BindingFlags.Static | BindingFlags.NonPublic)));
                 HarmonyInstance.Patch(typeof(RenpyScript).GetMethod("HandleInLinePython"), prefix: new HarmonyMethod(typeof(PatchUtils).GetMethod("InLinePythonPatch", BindingFlags.Static | BindingFlags.NonPublic)));
 
@@ -111,14 +110,6 @@ namespace Doki.Extensions
             }
 
             return true;
-        }
-
-        //Fixes the empty chars on the menu & missing logo, etc at the end of the script
-        private static bool get_refreshMainMenuPatch(ref bool __result)
-        {
-            // RenpyMainMenuUI.playMainMenuTheme = true; -- uh find out a proper place to put this
-            __result = true;
-            return false;
         }
 
         private static bool get_AllowRunResetShPatch(ref bool __result)
