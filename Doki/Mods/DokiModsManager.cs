@@ -14,6 +14,9 @@ namespace Doki.Mods
 
         public static void LoadMods()
         {
+            if (BootLoader.DontMod)
+                return;
+
             ConsoleUtils.Log("DokiModsManager", "Loading Doki Mods..");
 
             if (Directory.GetDirectories("Doki\\Mods").Length == 0)
@@ -40,9 +43,6 @@ namespace Doki.Mods
                             }
 
                             DokiMod mod = Activator.CreateInstance(types.First()) as DokiMod;
-
-                            if (mod.Disabled)
-                                continue;
 
                             ConsoleUtils.Log("DokiModsManager", $"Trying to load Doki Mod: {Path.GetFileNameWithoutExtension(file)}");
 

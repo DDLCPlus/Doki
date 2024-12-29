@@ -13,8 +13,6 @@ namespace Doki.Mods
         public virtual string Version => "1.0";
         public virtual string LabelEntryPoint => "startmod";
 
-        public virtual bool Disabled => false;
-
         public List<AssetBundle> ModBundles = [];
 
         public virtual Dictionary<MethodBase, HarmonyMethod> Prefixes { get; set; }

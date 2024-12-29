@@ -6,6 +6,7 @@ namespace Doki.Extensions
 {
     public static class ConsoleUtils
     {
+        public static string[] ConsoleArguments { get; set; }
         private const int STD_OUTPUT_HANDLE = -11;
 
         [DllImport("kernel32.dll")]

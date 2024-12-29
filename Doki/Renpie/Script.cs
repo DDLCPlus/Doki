@@ -253,63 +253,77 @@ namespace Doki.Renpie
             return line.Line;
         }
 
-        private List<Line> HandleCondition(IfCondition ifCondition = null, ElifCondition elIfCondition = null)
+        private RenpyGoToLineUnless AddConditionalJump(string condition, List<Line> retLines)
         {
-            List<Line> RetLines = [];
-            var afterIf = new RenpyNOP();
-            RenpyGoToLineUnless lastGoto = null;
+            //Compile le raw condition (i.e if fuck == "Yes")
 
-            if (ifCondition != null)
+            var compiledCondition = SimpleExpressionEngine.Parser.Compile(condition);
+
+            //Go here if the condition is MET, otherwise continue operation
+            var gotoStmt = new RenpyGoToLineUnless(condition, -1)
             {
-                var compiledCondition = SimpleExpressionEngine.Parser.Compile(ifCondition.Condition);
-                var gotoStmt = new RenpyGoToLineUnless(ifCondition.Condition, -1) { CompiledExpression = compiledCondition };
+                CompiledExpression = compiledCondition
+            };
 
-                RetLines.Add(gotoStmt);
-                lastGoto = gotoStmt;
-            }
+            retLines.Add(gotoStmt);
 
-            if (elIfCondition != null)
-            {
-                var compiledCondition = SimpleExpressionEngine.Parser.Compile(elIfCondition.Condition);
-                var gotoStmt = new RenpyGoToLineUnless(elIfCondition.Condition, -1) { CompiledExpression = compiledCondition };
-
-                RetLines.Add(gotoStmt);
-                lastGoto = gotoStmt;
-            }
-
-            var hardGoto = new RenpyGoToLine(-1);
-            Jumps.Add(hardGoto, afterIf);
-            Jumps.Add(lastGoto, afterIf);
-            RetLines.Add(afterIf);
-
-            return RetLines;
+            return gotoStmt;
         }
 
         private List<Line> HandleIfStatement(int currentLine, List<RenpyCommand> commands, IfCondition condition)
         {
-            // We need to get the elif's (if any) related to this if statement
+            List<Line> retLines = [];
+
+            //This is a no operation instruction thing, it marks the end of the conditional basically
+            RenpyNOP afterIf = new RenpyNOP();
+
+            //Last conditional jump
+            RenpyGoToLineUnless lastGoto = null;
 
             List<ElifCondition> elifConditions = [];
-            ElseCondition elseCondition = null; // And check if there's an else statement
 
             for (int i = currentLine + 1; i < commands.Count; i++)
             {
                 if (commands[i] is ElifCondition elifCondition)
                     elifConditions.Add(elifCondition);
-                else if (commands[i] is ElseCondition eCondition)
-                {
-                    elseCondition = eCondition;
-                    break; //Idk what to do with this just yet
-                }
                 else
                     break;
             }
 
-            List<Line> retLines = [.. HandleCondition(condition, null)];
-            foreach (var elifCondition in elifConditions)
-                retLines.AddRange(HandleCondition(null, elifCondition));
+            if (condition != null)
+            {
+                //Skip this block if the condition isnt met
 
-            // Now that we have all the possible conditions in this block, we need to handle what to do after the statement
+                var gotoStmt = AddConditionalJump(condition.Condition, retLines);
+
+                //Link the last jump to the current one for more flooow
+                if (gotoStmt != null)
+                    Jumps.Add(lastGoto, gotoStmt);
+
+                //Keep track of the last conditional jump duh
+                lastGoto = gotoStmt;
+            }
+
+            foreach (var elifCondition in elifConditions)
+            {
+                //Basically same shit is happening here, skip the block if the condition isnt met yadda yadda
+
+                var gotoStmt = AddConditionalJump(elifCondition.Condition, retLines);
+
+                if (gotoStmt != null)
+                    Jumps.Add(lastGoto, gotoStmt);
+
+                lastGoto = gotoStmt;
+            }
+
+            // Create an unconditional jump to the end of the conditional block (basically go here when all else isnt met)
+
+            var hardGoto = new RenpyGoToLine(-1);
+            Jumps.Add(hardGoto, afterIf);
+            retLines.Add(hardGoto);
+
+            Jumps.Add(lastGoto, afterIf);
+            retLines.Add(afterIf);
 
             return retLines;
         }
@@ -335,6 +349,14 @@ namespace Doki.Renpie
                             characterTag = possibleTag;
                     }
 
+                    //Say what the fucking menu wants to say
+                    //m "What do you think?"
+                    // -> fuck
+                    // -> you
+                    // -> monika
+                    //OR
+                    //"Hi there"
+                    // -> Would you like to sign my petition?
                     RetLines.Add(MakeDialogueLine(label, firstLine, false, characterTag, string.IsNullOrEmpty(characterTag) ? "menu-caption" : "say", false));
                 }
             }

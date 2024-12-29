@@ -1,4 +1,5 @@
 label startmod:
+    invoke do_custom_dialogue_box
     $ n_name = "Natsuki the Natsuki"
     define nc = DynamicCharacter('Natsuki Clone', image='clonesuki', what_prefix='"', what_suffix='"', ctc="ctc", ctc_position="fixed")
     # define nc = Character('Natsuki Clone', image='clonesuki', what_prefix='"', what_suffix='"')

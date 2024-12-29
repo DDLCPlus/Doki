@@ -4,6 +4,7 @@ using RenpyLauncher;
 using System;
 using System.Collections.Generic;
 using System.Reflection;
+using UnityEngine;
 
 namespace DokiModTest
 {
@@ -14,7 +15,6 @@ namespace DokiModTest
         public override string Author => "Doki Dev Team";
         public override string Version => "1.0";
         public override string LabelEntryPoint => "startmod";
-        public override bool Disabled => false;
 
         public override Dictionary<MethodBase, HarmonyMethod> Prefixes => new Dictionary<MethodBase, HarmonyMethod>()
         {
@@ -40,6 +40,15 @@ namespace DokiModTest
             Console.WriteLine("Trying to fix menu stuff with the help of inline \"python function\"!");
 
             return true;
+        }
+
+        private void do_custom_dialogue_box()
+        {
+            GameObject coroutineObject = new GameObject();
+
+            coroutineObject.AddComponent<CustomDialogueBox>();
+
+            UnityEngine.Object.DontDestroyOnLoad(coroutineObject);
         }
 
         private static bool QuitPatch(ref bool __result)
