@@ -30,13 +30,5 @@ namespace DokiModTest
             if (image.color != dialogueColor)
                 image.color = dialogueColor;
         }
-
-        private IEnumerator DoTheCoroutine()
-        {
-            while (image.color == dialogueColor)
-                yield return null;
-
-            image.color = dialogueColor;
-        }
     }
 }
