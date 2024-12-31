@@ -10,13 +10,15 @@ namespace Doki.Renpie
 {
     public class ArchiveFile
     {
-        private byte[] Contents { get; set; }
+        public byte[] Contents { get; set; }
 
         public string FilePath { get; set; }
 
         public string Parent { get; set; }
 
         public string Name { get; set; }
+
+        public string FileNameExt { get; set; }
 
         public bool IsScript = false;
 
@@ -27,6 +29,7 @@ namespace Doki.Renpie
             Parent = parent;
             Contents = contents;
             FilePath = name;
+            FileNameExt = Path.GetFileName(name);
             Name = Path.GetFileNameWithoutExtension(name);
             IsScript = Path.GetExtension(FilePath) == ".rpyc" || Path.GetExtension(FilePath) == ".rpy";
             IsAsset = !IsScript;
