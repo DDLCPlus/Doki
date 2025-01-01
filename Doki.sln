@@ -14,6 +14,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution 
 		.editorconfig = .editorconfig
 	EndProjectSection
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RpycTests", "RpycTests\RpycTests.csproj", "{588298A8-0836-42DC-822C-CAC773FA2CF9}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -32,6 +34,10 @@ Global
 		{72EC1409-B07E-4426-BA7F-7C9717DDA7D7}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{72EC1409-B07E-4426-BA7F-7C9717DDA7D7}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{72EC1409-B07E-4426-BA7F-7C9717DDA7D7}.Release|Any CPU.Build.0 = Release|Any CPU
+		{588298A8-0836-42DC-822C-CAC773FA2CF9}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{588298A8-0836-42DC-822C-CAC773FA2CF9}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{588298A8-0836-42DC-822C-CAC773FA2CF9}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{588298A8-0836-42DC-822C-CAC773FA2CF9}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

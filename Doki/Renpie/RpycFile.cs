@@ -5,11 +5,12 @@ using RenPyParser.VGPrompter.DataHolders;
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.IO.Compression;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace RpycTest
+namespace Doki.Renpie.Rpyc
 {
     public class RpycFile
     {
@@ -17,140 +18,77 @@ namespace RpycTest
 
         public Dictionary<BlockEntryPoint, RenpyBlock> Labels = new Dictionary<BlockEntryPoint, RenpyBlock>();
 
-        public RpycFile(byte[] Contents)
+        public List<RenpyInitBlock> Inits = new List<RenpyInitBlock>();
+
+        private int FindZlibStart(byte[] data, byte[][] headers)
         {
-            List<byte> listBytes = new List<byte>();
-
-            using (MemoryStream stream = new MemoryStream(Contents))
+            for (int i = 0; i < data.Length - 1; i++)
             {
-                stream.Position = 0x2E; //Zlib header (78 DA for RPYC 2 files)
-
-                for (long i = stream.Position; i < stream.Length; )
+                foreach (byte[] header in headers)
                 {
-                    var data = stream.ReadByte();
-
-                    listBytes.Add((byte)data);
+                    if (data.Length >= i + header.Length && data.Skip(i).Take(header.Length).SequenceEqual(header))
+                        return i;
                 }
             }
 
-            PythonObj pythonObj = Unpickler.UnpickleZlibBytes(listBytes.ToArray());
+            return -1;
+        }
 
-            if (pythonObj.Type != PythonObj.ObjType.TUPLE)
+        public RpycFile(byte[] Contents)
+        {
+            byte[][] zlibHeaders = new byte[][]
+            {
+                new byte[] { 0x78, 0xDA },
+                new byte[] { 0x78, 0x9C },
+                new byte[] { 0x78, 0x01 }
+            };
+
+            int zlibStartIndex = FindZlibStart(Contents, zlibHeaders);
+
+            if (zlibStartIndex == -1)
             {
                 Valid = false;
-
-                throw new Exception("Invalid .rpyc file!");
+                throw new Exception("No valid zlib header found in this .rpyc file!");
             }
 
-            Process(pythonObj.Tuple[1].List);
+            byte[] zlibData = Contents.Skip(zlibStartIndex).ToArray();
+
+            using (MemoryStream stream = new MemoryStream(zlibData))
+            {
+                byte[] compressedData = new byte[stream.Length - zlibStartIndex];
+
+                stream.Read(compressedData, 0, compressedData.Length);
+
+                PythonObj pythonObj = Unpickler.UnpickleZlibBytes(compressedData);
+
+                if (pythonObj.Type != PythonObj.ObjType.TUPLE)
+                {
+                    Valid = false;
+                    throw new Exception("Invalid .rpyc file!");
+                }
+
+                File.WriteAllText($"script-{Math.Round((double)new Random().Next(100, 10000))}.debug", pythonObj.ToString());
+
+                //Console.WriteLine(pythonObj.ToString());
+
+                Process(pythonObj.Tuple[1].List);
+            }
 
             //TUPLE ->
             // - DICT (key, unlocked, version)
             // - LIST (python objects)
         }
 
-        private bool SkipPyExpression(string rawExpression)
-        {
-            List<string> forbiddenKeywords = new List<string>()
-            {
-                "import"
-            };
-
-            foreach(var keyword in forbiddenKeywords)
-            {
-                if (rawExpression.ToLower().Contains(keyword))
-                    return true;
-            }
-
-            return false;
-        }
-
-        private object DoPythonExpression(PythonObj pythonObj, List<Line> retLines)
-        {
-            PythonObj code = pythonObj.Fields["code"];
-
-            if (pythonObj.Fields.ContainsKey("store"))
-            {
-                PythonObj store = code.Fields["store"];
-
-                string variableAssignmentRaw = store.Args.Tuple[0].String;
-
-                if (!variableAssignmentRaw.Contains(" = "))
-                {
-                    //Not variable assignment
-                    return null;
-                } else
-                    return new RenpyOneLinePython($"$ {variableAssignmentRaw}");
-            }
-
-            return null;
-        }
-
-        private RenpyShow ParseShow(PythonObj pythonObj)
-        {
-            var imspec = pythonObj.Fields["imspec"];
-            var imspecTuple = imspec.Tuple;
-            var showAssets = imspecTuple[0].Tuple;
-            var pyExprs = imspecTuple.Where(x => x.Name == "renpy.ast.PyExpr").ToList(); //first would be the transform data, could tell by the letter -> numbers after
-            var hasZOrder = pyExprs.Where(x => x.Args.Tuple.Count > 0 && x.Args.Tuple[0].Int != default).Count() > 0;
-
-            var imgAsset = showAssets[0].String;
-            var specExpr = showAssets[1].String;
-
-            //second would be the zorder
-
-            /* showAssets is:
-                (
-                 'sayori'
-                 '1a'
-                ) */
-
-            string outputShow = $"show {imgAsset} {(specExpr == null ? "" : specExpr)}";
-
-            RenpyShow retShow = new RenpyShow("show ")
-            {
-                show =
-                {
-                    IsImage = true,
-                    ImageName = imgAsset,
-                    Variant = string.IsNullOrEmpty(specExpr) ? specExpr : "",
-                    TransformName = "",
-                    TransformCallParameters = [],
-                    Layer = "master",
-                    As = "",
-                    HasZOrder = hasZOrder
-                }
-            };
-
-            //Handle layer, transform name & call parameters, and as
-
-            retShow.ShowData = outputShow;
-
-            return retShow;
-        }
-
-        private void ProcessLine(PythonObj pythonObj, List<Line> retLines)
-        {
-            switch(pythonObj.Name)
-            {
-                case "renpy.ast.Python":
-                    object pyExprRes = DoPythonExpression(pythonObj, retLines);
-
-                    if (pyExprRes != null)
-                        retLines.Add((Line)pyExprRes);
-                    break;
-                case "renpy.ast.Show":
-                    retLines.Add(ParseShow(pythonObj));
-                    break;
-            }
-        }
-
         private List<Line> ProcessBlock(PythonObj pythonObj)
         {
             List<Line> retLines = new List<Line>();
 
-            pythonObj.List.ForEach(x => {
-                ProcessLine(x, retLines);
+            pythonObj.List.ForEach(x =>
+            {
+                Line outLine = x.AsRenpyLine();
+
+                if (outLine != null)
+                    retLines.Add(outLine);
             });
 
             return retLines;
@@ -164,13 +102,15 @@ namespace RpycTest
             string name = rawBlock.Fields["name"].String;
             PythonObj renBlock = rawBlock.Fields["block"];
 
-            //handle parameters (under rawBlocks.Fields["parameters"] later)
+            //Console.WriteLine(renBlock.ToString());
+
+            //handle parameters(under rawBlocks.Fields["parameters"] later)
 
             BlockEntryPoint entryPoint = new BlockEntryPoint(name, 0);
 
             RenpyBlock block = new RenpyBlock();
 
-            block.callParameters = [];
+            block.callParameters = new RenpyCallParameter[0];
             block.Label = name;
             block.IsMainLabel = false;
             block.Contents = ProcessBlock(renBlock);
@@ -182,14 +122,25 @@ namespace RpycTest
 
         private void HandleInit(PythonObj pythonObj)
         {
-            //To-do
+            List<Line> retLines = new List<Line>();
+
+            List<PythonObj> initBlockContents = pythonObj.Fields["block"].List;
+            
+            foreach(PythonObj initBlock in initBlockContents)
+            {
+                Line equivalent = initBlock.AsRenpyLine();
+
+                retLines.Add(equivalent);
+            }
+
+            Inits.Add(new RenpyInitBlock(retLines));
         }
 
         private void Process(List<PythonObj> List)
         {
-            foreach(PythonObj obj in List)
+            foreach (PythonObj obj in List)
             {
-                switch(obj.Name)
+                switch (obj.Name)
                 {
                     case "renpy.ast.Label":
                         HandleLabel(obj);
