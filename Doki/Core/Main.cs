@@ -98,6 +98,15 @@ THE SOFTWARE.
             ConsoleUtils.Log("Doki", "Initialized BootLoader successfully");
         }
 
+        public void Update()
+        {
+            if (Input.GetKey(KeyCode.LeftControl) && Input.GetKeyDown(KeyCode.R))
+            {
+                //Reload mods
+                DokiModsManager.LoadMods();
+            }
+        }
+
         private void DeleteAllContents(string directoryPath)
         {
             foreach (string file in Directory.GetFiles(directoryPath))

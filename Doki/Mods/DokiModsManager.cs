@@ -12,12 +12,38 @@ namespace Doki.Mods
         public static List<DokiMod> Mods = [];
         public static int ActiveScriptModifierIndex = 0;
 
+        private static void UnloadMods()
+        {
+            foreach (var mod in Mods)
+            {
+                try
+                {
+                    mod.OnUnload();
+                }
+                catch (Exception e)
+                {
+                    ConsoleUtils.Error("DokiModsManager", e, $"An error occurred while unloading mod: {mod.Name}");
+                }
+            }
+
+            Mods.Clear();
+            ActiveScriptModifierIndex = 0;
+
+            GC.Collect();
+            GC.WaitForPendingFinalizers();
+        }
+
         public static void LoadMods()
         {
             if (BootLoader.DontMod)
                 return;
 
-            ConsoleUtils.Log("DokiModsManager", "Loading Doki Mods..");
+            bool IsReload = Mods.Count() > 0;
+
+            ConsoleUtils.Log("DokiModsManager", $"{(IsReload ? "Re" : "")}loading Doki Mods...");
+
+            if (IsReload)
+                UnloadMods();
 
             if (Directory.GetDirectories("Doki\\Mods").Length == 0)
             {
@@ -33,7 +59,8 @@ namespace Doki.Mods
                     {
                         try
                         {
-                            var assembly = Assembly.LoadFrom(Path.GetFullPath(file));
+                            //Load from stream so we prevent files from getting locked :3 - for reloading n shtuff
+                            var assembly = Assembly.Load(File.ReadAllBytes(file));
                             var types = assembly.GetTypes().Where(x => x.IsSubclassOf(typeof(DokiMod)));
 
                             if (types.Count() == 0)
@@ -68,7 +95,7 @@ namespace Doki.Mods
                 }
             }
 
-            ConsoleUtils.Log("DokiModsManager", "Loaded Doki Mods.");
+            ConsoleUtils.Log("DokiModsManager", $"{(IsReload ? "Re" : "")}loaded Doki Mods...");
         }
     }
 }

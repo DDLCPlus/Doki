@@ -307,6 +307,7 @@
 
   <ItemGroup>
 	  <PackageReference Include="Lib.Harmony" Version="2.3.3" />
+	  <PackageReference Include="System.Runtime.Loader" Version="4.3.0" />
   </ItemGroup>
 
   <ItemGroup>

@@ -1,4 +1,5 @@
-﻿using Doki.Mods;
+﻿using Doki.Extensions;
+using Doki.Mods;
 using HarmonyLib;
 using RenpyLauncher;
 using System;
@@ -40,6 +41,16 @@ namespace DokiModTest
             Console.WriteLine("Trying to fix menu stuff with the help of inline \"python function\"!");
 
             return true;
+        }
+
+        public override void OnUnload()
+        {
+            Console.WriteLine("I'm unloading :D");
+        }
+
+        public override void OnLoad()
+        {
+            Console.WriteLine("I'm loading :D");
         }
 
         private void do_custom_dialogue_box()

@@ -24,6 +24,7 @@ namespace Doki.Mods
         public bool ModifiesContext { get; set; }
 
         public virtual void OnLoad() { }
+        public virtual void OnUnload() { }
         public virtual void OnNextLine() { }
     }
 }

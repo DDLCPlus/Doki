@@ -9,4 +9,10 @@
     <ProjectReference Include="..\Doki\Doki.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Reference Include="DDLC">
+      <HintPath>..\Deps\DDLC.dll</HintPath>
+    </Reference>
+  </ItemGroup>
+
 </Project>
