@@ -18,6 +18,8 @@ using System.Linq;
 using System.Reflection;
 using System.Xml.Linq;
 using UnityEngine;
+using UnityEngine.SceneManagement;
+using UnityEngine.Scripting;
 using UnityPS;
 
 namespace Doki.Extensions
@@ -26,6 +28,7 @@ namespace Doki.Extensions
     {
         private static Harmony HarmonyInstance { get; set; }
         public static bool Patched = false;
+        public static bool RunModContextOnce = false;
 
         private static int CurrentLine = 0;
 
@@ -51,6 +54,8 @@ namespace Doki.Extensions
                 HarmonyInstance.Patch(typeof(ActiveImage).GetMethod("ChangeAssetImmediate", BindingFlags.NonPublic | BindingFlags.Instance), postfix: new HarmonyMethod(typeof(PatchUtils).GetMethod("ChangeAssetImmediatePostPatch", BindingFlags.Static | BindingFlags.NonPublic)));
                 HarmonyInstance.Patch(typeof(FileBrowserApp).GetMethod("get_AllowRunResetSh", BindingFlags.NonPublic | BindingFlags.Instance), prefix: new HarmonyMethod(typeof(PatchUtils).GetMethod("get_AllowRunResetShPatch", BindingFlags.Static | BindingFlags.NonPublic)));
                 HarmonyInstance.Patch(typeof(RenpyScript).GetMethod("HandleInLinePython"), prefix: new HarmonyMethod(typeof(PatchUtils).GetMethod("InLinePythonPatch", BindingFlags.Static | BindingFlags.NonPublic)));
+                HarmonyInstance.Patch(typeof(Renpy).GetMethod("ForceUnloadAssetBundles"), prefix: new HarmonyMethod(typeof(PatchUtils).GetMethod("DontUnloadPls", BindingFlags.Static | BindingFlags.NonPublic)));
+
 
                 foreach (var mod in DokiModsManager.Mods)
                 {
@@ -84,6 +89,11 @@ namespace Doki.Extensions
                 ConsoleUtils.Log("Doki", $"All Patches (base & mods) applied.");
                 Patched = true;
             }
+        }
+
+        private static bool DontUnloadPls()
+        {
+            return !RunModContextOnce;
         }
 
         private static bool InLinePythonPatch(RenpyScript __instance, InLinePython InlinePython, ref object __result)
@@ -238,31 +248,42 @@ namespace Doki.Extensions
 
         private static void LoadPermanentBundlesPatch(ref ActiveAssetBundles __instance)
         {
-            Dictionary<string, AssetBundle> m_ActiveAssetBundles = (Dictionary<string, AssetBundle>)__instance.GetPrivateField("m_ActiveAssetBundles");
-
-            foreach (var kvp in m_ActiveAssetBundles)
+            try
             {
-                if (!AssetUtils.AssetBundles.ContainsKey(kvp.Key))
-                    AssetUtils.AssetBundles[kvp.Key] = kvp.Value;
-            }
+                Dictionary<string, AssetBundle> m_ActiveAssetBundles = (Dictionary<string, AssetBundle>)__instance.GetPrivateField("m_ActiveAssetBundles");
 
-            foreach (var bundle in AssetUtils.AssetBundles)
-            {
-                var bundleVal = bundle.Value;
-                string key = bundle.Key;
-
-                foreach (var asset in bundleVal.GetAllAssetNames())
+                foreach (var kvp in m_ActiveAssetBundles)
                 {
-                    // assetKey -> bundleName -> assetFullPathInBundle
-                    string assetKey = Path.GetFileNameWithoutExtension(asset);
-                    AssetUtils.AssetsToBundles[assetKey] = new Tuple<string, Tuple<string, bool>>(key, new Tuple<string, bool>(asset, true));
-
-                    if (key.StartsWith("bgm") || key.StartsWith("sfx"))
-                        AssetUtils.QuickAudioAssetMap[assetKey] = key;
+                    if (!AssetUtils.AssetBundles.ContainsKey(kvp.Key))
+                        AssetUtils.AssetBundles[kvp.Key] = kvp.Value;
                 }
-            }
 
-            ConsoleUtils.Log("Doki", $"AssetsToBundles contains {AssetUtils.AssetsToBundles.Count} items.");
+                foreach (var bundle in AssetUtils.AssetBundles)
+                {
+                    var bundleVal = bundle.Value;
+
+                    if (bundleVal != null && !RunModContextOnce)
+                        RunModContextOnce = true;
+
+                    string key = bundle.Key;
+
+                    foreach (var asset in bundleVal.GetAllAssetNames())
+                    {
+                        // assetKey -> bundleName -> assetFullPathInBundle
+                        string assetKey = Path.GetFileNameWithoutExtension(asset);
+                        AssetUtils.AssetsToBundles[assetKey] = new Tuple<string, Tuple<string, bool>>(key, new Tuple<string, bool>(asset, true));
+
+                        if (key.StartsWith("bgm") || key.StartsWith("Lsfx"))
+                            AssetUtils.QuickAudioAssetMap[assetKey] = key;
+                    }
+                }
+
+                ConsoleUtils.Log("Doki", $"AssetsToBundles contains {AssetUtils.AssetsToBundles.Count} items.");
+            }
+            catch (Exception ex)
+            {
+                ConsoleUtils.Error("LoadPermanentBundlesPatch", ex);
+            }
         }
 
         private static bool ImmediatePatch(RenpyLoadImage __instance, GameObject gameObject, CurrentTransform currentTransform, string key)
@@ -333,7 +354,6 @@ namespace Doki.Extensions
             // Yes, I know I have an instance to the AssetBundle but shit will fucking crash if I use it.
             AssetBundle realInstance = AssetUtils.AssetBundles[__instance.name];
             __result = realInstance.ForceLoadAsset(name, type);
-
             return false;
         }
 
@@ -503,6 +523,7 @@ namespace Doki.Extensions
             if (audioClip == null)
             {
                 AssetBundle foundBundle = AssetUtils.GetPreciseAudioRelatedBundle(audioData.simpleAssetName);
+
                 if (foundBundle == null)
                     return true;
 

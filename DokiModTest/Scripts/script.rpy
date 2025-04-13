@@ -3,8 +3,8 @@ label startmod:
     $ n_name = "Natsuki the Natsuki"
     define nc = DynamicCharacter('Natsuki Clone', image='clonesuki', what_prefix='"', what_suffix='"', ctc="ctc", ctc_position="fixed")
     # define nc = Character('Natsuki Clone', image='clonesuki', what_prefix='"', what_suffix='"')
-    # image clonesuki 1a = "im.Composite((960, 960), (0, 0), "clonesuki/1l.png", (0, 0), "clonesuki/1r.png", (0, 0), "clonesuki/a.png")"
-    # define custom_music = "custom_music.ogg"
+    image clonesuki 1a = "im.Composite((720, 720), (0, 0), "clonesuki/1l.png", (0, 0), "clonesuki/1r.png", (0, 0), "clonesuki/a.png")"
+    # define custom_music = "what_the_fuck.ogg"
     # image bg bg_test2 = "bg_test_original/bg_test2.png"
     # image bg normal_fucking_background = "normal_fucking_background/normal_fucking_background.jpg"
     stop music fadeout 2.0
@@ -20,9 +20,10 @@ label startmod:
     #show natsuki 3o zorder 1 at t11
     #show natsuki2 3o zorder 2 at h34
     show natsuki 3o zorder 2 at t22
-    nc "This is a test I'm a clone!"
-    # show clonesuki 1a zorder 3 at f21
+    #show natsuki 1a zorder 3 at f21
+    #show clonesuki 1a zorder 3 at f21
     n "Ugh why won't it work?"
+    #nc "This is a test I'm a clone!"
     hide natsuki
     scene bg corridor
     "Through the window of the door I notice natsuki standing next to what looks like some big contraption."
@@ -45,8 +46,21 @@ label startmod:
     show natsuki 2q zorder 1 at t11
     n "Although.. It doesn't seem to be working right now.."
     mc "I see. Have you tried pushing the on button?"
-
     stop music
+    hide natsuki
+    show natsuki 4n zorder 1 at t11
+    "Natsuki stares at me, her eyes widening as the realization set in that she forgot to push the power button."
+    "Natsuki pushes the power button."
+    # play music custom_music
+    play music t2
+    show clonesuki 1a zorder 3 at f21
+    "And outcomes.... Natsuki"
+    hide natsuki
+    show natsuki 3j zorder 1 at t11
+    n "A-ha! Got it."
+    nc "What is my purpose?"
+    n "You pass Butter"
+    nc "Oh my God."
     invoke fix_menu_stuff
     jump end_game
     return

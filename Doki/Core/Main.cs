@@ -95,7 +95,15 @@ THE SOFTWARE.
                 PatchUtils.ApplyPatches();
             }
 
+            Application.logMessageReceived += Application_logMessageReceived;
+
             ConsoleUtils.Log("Doki", "Initialized BootLoader successfully");
+        }
+
+        private void Application_logMessageReceived(string condition, string stackTrace, LogType type)
+        {
+            if ((type == LogType.Exception || type == LogType.Error) && BootLoader.LogUnityExceptions) // to-do: find a better place for this boolean
+                ConsoleUtils.Error("MAIN.LOGMSGRCVHOOK", new Exception(stackTrace), stackTrace);
         }
 
         public void Update()

@@ -12,6 +12,7 @@ namespace Doki
         public static bool DontLoad = false;
         public static bool DontMod = false;
         public static bool NoConsole = false;
+        public static bool LogUnityExceptions = false;
 
         public static void Load()
         {
@@ -20,6 +21,7 @@ namespace Doki
             DontLoad = ConsoleUtils.ConsoleArguments.Contains("--dont-load");
             DontMod = ConsoleUtils.ConsoleArguments.Contains("--dont-mod");
             NoConsole = ConsoleUtils.ConsoleArguments.Contains("--no-console");
+            LogUnityExceptions = ConsoleUtils.ConsoleArguments.Contains("--log-unity-exceptions");
 
             if (!DontLoad)
             {

@@ -1,6 +1,8 @@
-﻿using System;
+﻿using Doki.Extensions;
+using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -28,7 +30,20 @@ namespace DokiModTest
                 return;
 
             if (image.color != dialogueColor)
+            {
                 image.color = dialogueColor;
+
+                //ProxyAssetBundle proxyBundle = AssetUtils.FindProxyBundleByAssetKey("custom_text_box_bg");
+
+                //if (proxyBundle != null)
+                //{
+                //    string outPath = proxyBundle.ToPath("custom_text_box_bg");
+
+                //    image.sprite = (Sprite)proxyBundle.Load("UnityEngine.Sprite", outPath);
+                //    image.sprite.texture.filterMode = FilterMode.Trilinear;
+                //    image.sprite.texture.wrapMode = TextureWrapMode.Clamp;
+                //}
+            }
         }
     }
 }
