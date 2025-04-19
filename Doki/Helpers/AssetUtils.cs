@@ -89,7 +89,8 @@ namespace Doki.Extensions
 
         public static AssetBundle LoadGameBundle(string label)
         {
-            string text = Path.Combine(Application.streamingAssetsPath, $"AssetBundles/{PathHelpers.GetPlatformForAssetBundles(Application.platform)}/{label}.cy");
+            string text = Path.Combine(Application.streamingAssetsPath, $"AssetBundles\\{PathHelpers.GetPlatformForAssetBundles(Application.platform)}\\{label}.cy");
+
             AssetBundle assetBundle = AssetBundle.LoadFromStream(new XorFileStream(text, FileMode.Open, FileAccess.Read));
 
             if (assetBundle == null)

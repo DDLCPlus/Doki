@@ -12,7 +12,7 @@ namespace Doki.Mods
         public static List<DokiMod> Mods = [];
         public static int ActiveScriptModifierIndex = 0;
 
-        private static void UnloadMods()
+        public static void UnloadMods()
         {
             foreach (var mod in Mods)
             {
@@ -40,10 +40,12 @@ namespace Doki.Mods
 
             bool IsReload = Mods.Count() > 0;
 
-            ConsoleUtils.Log("DokiModsManager", $"{(IsReload ? "Re" : "")}loading Doki Mods...");
+            ConsoleUtils.Log("DokiModsManager", $"{(IsReload ? "Rel" : "L")}oading Doki Mods...");
 
             if (IsReload)
+            {
                 UnloadMods();
+            }
 
             if (Directory.GetDirectories("Doki\\Mods").Length == 0)
             {

@@ -91,7 +91,7 @@ THE SOFTWARE.
                     }
                 }
 
-                ConsoleUtils.Log("Doki", "Mod asset bundles loaded.\nApplying patches...");
+                ConsoleUtils.Log("Doki", "Mod asset bundles loaded. Applying patches...");
                 PatchUtils.ApplyPatches();
             }
 
@@ -102,8 +102,8 @@ THE SOFTWARE.
 
         private void Application_logMessageReceived(string condition, string stackTrace, LogType type)
         {
-            if ((type == LogType.Exception || type == LogType.Error) && BootLoader.LogUnityExceptions) // to-do: find a better place for this boolean
-                ConsoleUtils.Error("MAIN.LOGMSGRCVHOOK", new Exception(stackTrace), stackTrace);
+            if ((type == LogType.Exception || type == LogType.Error) && BootLoader.LogUnityExceptions && !BootLoader.CleanConsole) // to-do: find a better place for this boolean
+                ConsoleUtils.Warning("MAIN.LOGMSGRCVHOOK", "Msg: " + condition + "\nStack Trace:" + stackTrace);
         }
 
         public void Update()
@@ -112,6 +112,20 @@ THE SOFTWARE.
             {
                 //Reload mods
                 DokiModsManager.LoadMods();
+            }
+
+            if (Input.GetKey(KeyCode.LeftControl) && Input.GetKeyDown(KeyCode.F))
+            {
+                DokiModsManager.LoadMods();
+                PatchUtils.EnablePatches();
+                ConsoleUtils.Log("DokiModsManager", $"Forcefully re-modded DDLC+");
+            }
+
+            if (Input.GetKey(KeyCode.LeftControl) && Input.GetKeyDown(KeyCode.U))
+            {
+                DokiModsManager.UnloadMods();
+                PatchUtils.DisablePatches();
+                ConsoleUtils.Log("DokiModsManager", $"Unmodded DDLC+ - Press (L) CTRL F to forcefully re-mod DDLC+");
             }
         }
 

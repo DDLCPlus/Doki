@@ -38,19 +38,19 @@ namespace DokiModTest
             RenpyMainMenuUI.playMainMenuTheme = true;
             RenpyMainMenuUI.refreshMainMenu = true;
 
-            Console.WriteLine("Trying to fix menu stuff with the help of inline \"python function\"!");
+            //Console.WriteLine("Trying to fix menu stuff with the help of inline \"python function\"!");
 
             return true;
         }
 
         public override void OnUnload()
         {
-            Console.WriteLine("I'm unloading :D");
+            //Console.WriteLine("I'm unloading :D");
         }
 
         public override void OnLoad()
         {
-            Console.WriteLine("I'm loading :D");
+            //Console.WriteLine("I'm loading :D");
         }
 
         private void do_custom_dialogue_box()

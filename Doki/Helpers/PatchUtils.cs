@@ -13,6 +13,7 @@ using SimpleExpressionEngine;
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Reflection;
@@ -55,7 +56,8 @@ namespace Doki.Extensions
                 HarmonyInstance.Patch(typeof(FileBrowserApp).GetMethod("get_AllowRunResetSh", BindingFlags.NonPublic | BindingFlags.Instance), prefix: new HarmonyMethod(typeof(PatchUtils).GetMethod("get_AllowRunResetShPatch", BindingFlags.Static | BindingFlags.NonPublic)));
                 HarmonyInstance.Patch(typeof(RenpyScript).GetMethod("HandleInLinePython"), prefix: new HarmonyMethod(typeof(PatchUtils).GetMethod("InLinePythonPatch", BindingFlags.Static | BindingFlags.NonPublic)));
                 HarmonyInstance.Patch(typeof(Renpy).GetMethod("ForceUnloadAssetBundles"), prefix: new HarmonyMethod(typeof(PatchUtils).GetMethod("DontUnloadPls", BindingFlags.Static | BindingFlags.NonPublic)));
-
+                HarmonyInstance.Patch(typeof(UnityEngine.Debug).GetMethod("LogException", new[] { typeof(Exception) }), prefix: new HarmonyMethod(typeof(PatchUtils).GetMethod("LogExceptionPatch", BindingFlags.Static | BindingFlags.NonPublic)));
+                HarmonyInstance.Patch(typeof(UnityEngine.Debug).GetMethod("Log", new[] { typeof(object) }), prefix: new HarmonyMethod(typeof(PatchUtils).GetMethod("GeneralLogPatch", BindingFlags.Static | BindingFlags.NonPublic)));
 
                 foreach (var mod in DokiModsManager.Mods)
                 {
@@ -91,13 +93,33 @@ namespace Doki.Extensions
             }
         }
 
+        public static void DisablePatches() => Patched = false;
+
+        public static void EnablePatches() => Patched = true;
+
         private static bool DontUnloadPls()
         {
+            if (!Patched)
+                return true;
+
             return !RunModContextOnce;
+        }
+
+        private static bool GeneralLogPatch(object message)
+        {
+            return !BootLoader.CleanConsole;
+        }
+
+        private static bool LogExceptionPatch(Exception exception)
+        {
+            return !BootLoader.CleanConsole;
         }
 
         private static bool InLinePythonPatch(RenpyScript __instance, InLinePython InlinePython, ref object __result)
         {
+            if (!Patched)
+                return true;
+
             DokiMod mod = DokiModsManager.Mods[DokiModsManager.ActiveScriptModifierIndex];
 
             if (mod == null)
@@ -124,13 +146,19 @@ namespace Doki.Extensions
 
         private static bool get_AllowRunResetShPatch(ref bool __result)
         {
+            if (!Patched)
+                return true;
+
             __result = true;
             return false;
         }
 
         private static void ChangeAssetImmediatePostPatch(ActiveImage __instance, string name, GameObject parent, bool force = false)
         {
-            foreach(Script script in ScriptsHandler.LoadedScripts)
+            if (!Patched)
+                return;
+
+            foreach (Script script in ScriptsHandler.LoadedScripts)
             {
                 RenpyDefinition definition = script.Definitions.FirstOrDefault(x => x.Name == name && x.Type == DefinitionType.Image);
 
@@ -183,7 +211,10 @@ namespace Doki.Extensions
 
         private static void InitPatch(RenpyScript __instance, Defaults defaults, Dictionary<string, CharacterData> characters, Defaults globals, StyleDefinitions styles, Dictionary<string, Dictionary<int, string>> lines, Dictionary<string, RenpyAudioData> audio, GameObject libObject)
         {
-            foreach(Script script in ScriptsHandler.LoadedScripts)
+            if (!Patched)
+                return;
+
+            foreach (Script script in ScriptsHandler.LoadedScripts)
             {
                 RenpyDefinition[] CustomCharacters = script.Definitions.Where(x => x.Type == DefinitionType.Character).ToArray();
 
@@ -194,6 +225,9 @@ namespace Doki.Extensions
 
         private static bool HistoryPatch(Lines __instance, string innerKey, int outerKey, ref string __result)
         {
+            if (!Patched)
+                return true;
+
             Dictionary<string, Dictionary<int, string>> lines = (Dictionary<string, Dictionary<int, string>>)__instance.GetPrivateField("lines");
 
             foreach (Script script in ScriptsHandler.LoadedScripts)
@@ -215,11 +249,17 @@ namespace Doki.Extensions
 
         private static void NextPatch(RenpyCallstackEntry __instance, Line __result)
         {
+            if (!Patched)
+                return;
+
             CurrentLine = (int)__instance.GetPrivateField("lastLine");
         }
 
         private static bool InitialiseWithAudioDefinesPatch(RenpyExecutionContext __instance, AudioDefines defines)
         {
+            if (!Patched)
+                return true;
+
             Dictionary<string, DataValue> dictionary = [];
             Dictionary<string, DataValue> m_ExecutionVariables = (Dictionary<string, DataValue>)__instance.GetPrivateField("m_ExecutionVariables");
 
@@ -248,6 +288,9 @@ namespace Doki.Extensions
 
         private static void LoadPermanentBundlesPatch(ref ActiveAssetBundles __instance)
         {
+            if (!Patched)
+                return;
+
             try
             {
                 Dictionary<string, AssetBundle> m_ActiveAssetBundles = (Dictionary<string, AssetBundle>)__instance.GetPrivateField("m_ActiveAssetBundles");
@@ -288,6 +331,9 @@ namespace Doki.Extensions
 
         private static bool ImmediatePatch(RenpyLoadImage __instance, GameObject gameObject, CurrentTransform currentTransform, string key)
         {
+            if (!Patched)
+                return true;
+
             GameObject outObj = null;
             ProxyAssetBundle proxyBundle = AssetUtils.FindProxyBundleByAssetKey(key);
             bool overrideTransform = false;
@@ -336,6 +382,9 @@ namespace Doki.Extensions
 
         private static bool LoadPatch(AssetBundle __instance, string name, Type type, ref object __result)
         {
+            if (!Patched)
+                return true;
+
             string shortenedName = Path.GetFileNameWithoutExtension(name);
             ProxyAssetBundle proxyBundle = AssetUtils.FindProxyBundleByAssetKey(shortenedName);
 
@@ -359,6 +408,9 @@ namespace Doki.Extensions
 
         private static void ScriptExecutionPatch(ref Blocks __instance)
         {
+            if (!Patched)
+                return;
+
             try
             {
                 var __blocks = (Dictionary<string, RenpyBlock>)__instance.GetPrivateField("blocks");
@@ -450,10 +502,17 @@ namespace Doki.Extensions
 
         private static bool DebugPatch(ref LogType logType, ref object message)
         {
-            ConsoleUtils.ColourWrite([
-                new ConsoleUtils.ColouredText($"{logType}: {message}\n", ConsoleColor.Yellow)
-            ]);
-            return false /*true*/;
+            //if (!Patched)
+            //    return true;
+
+            if (!BootLoader.CleanConsole)
+            {
+                ConsoleUtils.ColourWrite([
+                    new ConsoleUtils.ColouredText($"{logType}: {message}\n", ConsoleColor.Yellow)
+                ]);
+            }
+
+            return !BootLoader.CleanConsole;
         }
 
         private static bool ResolveLabelPatch(ref RenpyScript __instance, ref ValueTuple<RenpyBlock, int> __result, ref string label)
@@ -464,6 +523,9 @@ namespace Doki.Extensions
 
         private static void ResolveLabelPatchAfter(ref RenpyScript __instance, ref ValueTuple<RenpyBlock, int> __result, ref string label)
         {
+            if (!Patched)
+                return;
+
             if (__result.Item1.Label.Contains("natsuki") || __result.Item1.Label.Contains("bg") || __result.Item1.Label.Contains("t11"))
             {
                 RenpyUtils.DumpBlock(__result.Item1);
@@ -479,6 +541,9 @@ namespace Doki.Extensions
 
         private static void TriedResolveLabelPatch(ref RenpyScript __instance, ref string label, ref ValueTuple<RenpyBlock, int> tuple)
         {
+            if (!Patched)
+                return;
+
             ConsoleUtils.Debug("Doki", $"Tried to resolve normal label -> {label}");
 
             if (label.Contains("bg") || label.Contains("natsuki") || label.Contains("t11"))
@@ -487,6 +552,9 @@ namespace Doki.Extensions
 
         private static bool InitAudioSourcePatch(MusicSource __instance, RenpyAudioData audioData, ref int index, bool looped, int loopCount, IContext context, string setFlag, bool immediate = true, int loopNumber = 0)
         {
+            if (!Patched)
+                return true;
+
             //name = t2
             //simple asset name = 2
             // load from simple asset name but check from name
