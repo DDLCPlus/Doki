@@ -1,5 +1,6 @@
 ﻿using Doki.Extensions;
 using Doki.Mods;
+using Doki.UI;
 using HarmonyLib;
 using RenpyLauncher;
 using System;
@@ -51,6 +52,14 @@ namespace DokiModTest
         public override void OnLoad()
         {
             //Console.WriteLine("I'm loading :D");
+            UiHandler.OverrideWallpaper("normal_fucking_background.jpg", false);
+            //UiHandler.AddEvent("start_menu_open", new Action(() =>
+            //{
+            //    UiHandler.CreateStartMenuButton("Test", new Action(() =>
+            //    {
+            //        Console.WriteLine("hey mom im a button!");
+            //    }), false, default, default, false, "button_icon_test.png");
+            //}));
         }
 
         private void do_custom_dialogue_box()

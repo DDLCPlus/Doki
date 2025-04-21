@@ -1,5 +1,6 @@
 ﻿using Doki.Core;
 using Doki.Extensions;
+using Doki.UI;
 using System;
 using System.Linq;
 using System.Reflection;
@@ -35,6 +36,7 @@ namespace Doki
 
                 var obj = new GameObject();
                 obj.AddComponent<Main>();
+                obj.AddComponent<UiSpotter>();
                 UnityEngine.Object.DontDestroyOnLoad(obj);
             }
         }
