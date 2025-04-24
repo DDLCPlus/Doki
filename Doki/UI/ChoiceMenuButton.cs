@@ -15,19 +15,10 @@ namespace Doki.UI
 
         public Action Clicked { get; set; }
 
-        public Action Hovered { get; set; }
-
-        public AudioClip OnHover { get; set; }
-
-        public AudioClip OnClicked { get; set; }
-
-        public ChoiceMenuButton(string text, Action clicked, Action hovered)
+        public ChoiceMenuButton(string text, Action clicked)
         {
             Text = text;
             Clicked = clicked;
-            Hovered = hovered;
-
-            OnHover = Renpy.Resources.Load<AudioClip>(PathHelpers.SanitizePathToAddressableName(path), assetMustExist);
         }
     }
 }
