@@ -71,6 +71,25 @@ namespace DokiModTest
             UnityEngine.Object.DontDestroyOnLoad(coroutineObject);
         }
 
+        private void do_custom_choice_menu()
+        {
+            UiHandler.ShowChoiceMenu(new List<ChoiceMenuButton>()
+            {
+                new ChoiceMenuButton("Test", new Action(() =>
+                {
+                    Console.WriteLine("This is a test!");
+                })),
+                new ChoiceMenuButton("Test 2", new Action(() =>
+                {
+                    Console.WriteLine("This is a test 2!");
+                })),
+                new ChoiceMenuButton("Test 3", new Action(() =>
+                {
+                    Console.WriteLine("This is a test 3!");
+                }))
+            });
+        }
+
         private static bool QuitPatch(ref bool __result)
         {
             __result = true;

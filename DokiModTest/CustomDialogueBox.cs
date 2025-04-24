@@ -26,23 +26,22 @@ namespace DokiModTest
 
         public void Update()
         {
-            if (image == null)
-                return;
-
-            if (image.color != dialogueColor)
+            if (gameObj.name != "Dialogue")
             {
-                image.color = dialogueColor;
+                gameObj.GetComponent<Image>().color = dialogueColor;
 
-                //ProxyAssetBundle proxyBundle = AssetUtils.FindProxyBundleByAssetKey("custom_text_box_bg");
+                ProxyAssetBundle proxyBundle = AssetUtils.FindProxyBundleByAssetKey("custom_text_box_bg");
 
-                //if (proxyBundle != null)
-                //{
-                //    string outPath = proxyBundle.ToPath("custom_text_box_bg");
+                if (proxyBundle == null)
+                    return;
 
-                //    image.sprite = (Sprite)proxyBundle.Load("UnityEngine.Sprite", outPath);
-                //    image.sprite.texture.filterMode = FilterMode.Trilinear;
-                //    image.sprite.texture.wrapMode = TextureWrapMode.Clamp;
-                //}
+                string outPath = proxyBundle.ToPath("custom_text_box_bg");
+
+                gameObj.GetComponent<Image>().sprite = (Sprite)proxyBundle.Load("UnityEngine.Sprite", outPath);
+                //gameObj.GetComponent<Image>().sprite.texture.filterMode = FilterMode.Trilinear;
+                //gameObj.GetComponent<Image>().sprite.texture.wrapMode = TextureWrapMode.Clamp;
+
+                gameObj.name = "Dialogue";
             }
         }
     }

@@ -1,4 +1,5 @@
 ﻿using Doki.Extensions;
+using RenpyParser;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -7,17 +8,21 @@ using System.Text;
 using System.Threading.Tasks;
 using TMPro;
 using UnityEngine;
+using UnityEngine.Events;
 using UnityEngine.UI;
 
 namespace Doki.UI
 {
+
     public static class UiHandler
     {
+        private static int NumberOfChoiceButtons { get; set; }
         private static List<UiEvent> UiEvents { get; set; }
 
         static UiHandler()
         {
             UiEvents = new List<UiEvent>();
+            NumberOfChoiceButtons = 11;
         }
 
         public static List<UiEvent> GetUiEventsForTrigger(string trigger)
@@ -95,6 +100,119 @@ namespace Doki.UI
                 wallpaper.name = "CustomWallpaper_Modified";
 
             }), doOnlyOnce);
+        }
+
+        //public static void ShowChoiceMenu(List<ChoiceMenuButton> buttons)
+        //{
+        //    GameObject choiceMenuPanel = GameObject.Find("UI/UIGameCanvas/ChoiceMenuPanel");
+
+        //    if (choiceMenuPanel.activeSelf || buttons.Count > NumberOfChoiceButtons)
+        //        return;
+
+        //    List<GameObject> buttonObjects = new List<GameObject>();
+
+        //    for (int i = 0; i < NumberOfChoiceButtons; i++)
+        //    {
+        //        string buttonName = "RenpyUIButton";
+
+        //        if (i > 0)
+        //            buttonName += $" ({i})";
+
+        //        GameObject choiceButtonObject = GameObject.Find($"UI/UIGameCanvas/ChoiceMenuPanel/{buttonName}");
+
+        //        if (choiceButtonObject != null)
+        //        {
+        //            choiceButtonObject.SetActive(false);
+        //            buttonObjects.Add(choiceButtonObject);
+        //        }
+        //    }
+
+        //    for(int j = 0; j < buttons.Count; j++)
+        //    {
+        //        if (j < buttonObjects.Count)
+        //        {
+        //            GameObject matchingButtonObj = buttonObjects[j];
+
+        //            if (matchingButtonObj != null)
+        //            {
+        //                TextMeshProUGUI buttonText = matchingButtonObj.GetComponentInChildren<TextMeshProUGUI>();
+        //                Button buttonComponent = matchingButtonObj.GetComponent<Button>();
+
+        //                if (buttonText != null)
+        //                    buttonText.text = buttons[j].Text;
+
+        //                if (buttonComponent != null)
+        //                {
+        //                    buttonComponent.onClick.RemoveAllListeners();
+        //                    buttonComponent.onClick.AddListener(new UnityEngine.Events.UnityAction(() =>
+        //                    {
+        //                        buttons[j].Clicked.Invoke();
+        //                    }));
+        //                }
+
+        //                matchingButtonObj.SetActive(true);
+        //            }
+        //        }
+        //    }
+
+        //    choiceMenuPanel.SetActive(true);
+        //}
+
+        public static void ShowChoiceMenu(List<ChoiceMenuButton> buttons)
+        {
+            GameObject choiceMenuPanel = GameObject.Find("UI/UIGameCanvas/ChoiceMenuPanel");
+            GameObject buttonPrefab = GameObject.Find("UI/UIGameCanvas/ChoiceMenuPanel/RenpyUIButton");
+
+            if (choiceMenuPanel == null || buttonPrefab == null || choiceMenuPanel.activeSelf || buttons.Count > NumberOfChoiceButtons)
+                return;
+
+            foreach (Transform child in choiceMenuPanel.transform) 
+                child.gameObject.SetActive(false);
+
+            for (int i = 0; i < buttons.Count; i++)
+            {
+                GameObject choiceButtonObject = GameObject.Instantiate(buttonPrefab, choiceMenuPanel.transform);
+                choiceButtonObject.name = $"ChoiceButton_{i}";
+
+                RenpyButtonUI renpyButtonUIComponent = choiceButtonObject.GetComponent<RenpyButtonUI>();
+
+                GameObject.Destroy(renpyButtonUIComponent);
+
+                TextMeshProUGUI buttonText = choiceButtonObject.GetComponentInChildren<TextMeshProUGUI>();
+                Button buttonComponent = choiceButtonObject.GetComponent<Button>();
+
+                if (buttonText != null)
+                    buttonText.text = buttons[i].Text;
+
+                if (buttonComponent != null)
+                {
+                    int buttonIndex = i;
+
+                    buttonComponent.onClick.AddListener(new UnityAction(() =>
+                    {
+                        buttons[buttonIndex].Clicked?.Invoke();
+
+                        GameObject.Destroy(choiceButtonObject);
+
+                        if (choiceMenuPanel.transform.childCount == 1)
+                            HideChoiceMenu();
+                    }));
+                }
+
+                choiceButtonObject.SetActive(true);
+            }
+
+            choiceMenuPanel.SetActive(true);
+        }
+
+        public static void HideChoiceMenu()
+        {
+            GameObject choiceMenuPanel = GameObject.Find("UI/UIGameCanvas/ChoiceMenuPanel");
+
+            if (!choiceMenuPanel.activeSelf)
+                return;
+
+            choiceMenuPanel.SetActive(false);
         }
 
         public static GameObject CreateStartMenuButton(string buttonText, Action buttonAction, bool buttonOpensMenu = false, Color backgroundHoverColor = default, Color textColor = default, bool newIconActive = false, string icon = null)
