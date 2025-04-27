@@ -1,4 +1,5 @@
 ﻿using Doki.Extensions;
+using Doki.Helpers;
 using RenpyParser;
 using System;
 using System.Collections.Generic;
@@ -23,6 +24,38 @@ namespace Doki.UI
         {
             UiEvents = new List<UiEvent>();
             NumberOfChoiceButtons = 11;
+        }
+
+        public static string ChoiceMade { get; set; }
+
+        public static void ShowStandardChoiceMenu(List<StandardChoiceMenuOption> options)
+        {
+            var ChoiceMenu = new StandardChoiceMenu(options);
+
+            GameObject obj = new GameObject();
+
+            var comp = obj.AddComponent<GeneralMonoBehaviour>();
+
+            comp.StartCoroutine(comp.ShowChoiceMenu(ChoiceMenu));
+
+            foreach(var option in options)
+            {
+                if (option.LabelJumpedToWhenClicked != null && ChoiceMade == option.ValueSetWhenClicked)
+                {
+                    Renpy.CurrentContext.Jump(option.LabelJumpedToWhenClicked);
+                    ChoiceMade = null;
+                    break;
+                }
+
+                if (option.ActionRanWhenClicked != null && ChoiceMade == option.ValueSetWhenClicked)
+                {
+                    option.ActionRanWhenClicked.Invoke();
+                    ChoiceMade = null;
+                    break;
+                }
+            }
+
+            UnityEngine.Object.Destroy(obj);
         }
 
         public static List<UiEvent> GetUiEventsForTrigger(string trigger)

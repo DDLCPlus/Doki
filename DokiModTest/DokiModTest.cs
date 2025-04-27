@@ -3,10 +3,14 @@ using Doki.Mods;
 using Doki.UI;
 using HarmonyLib;
 using RenpyLauncher;
+using RenpyParser;
 using System;
+using System.Collections;
 using System.Collections.Generic;
+using System.IO;
 using System.Reflection;
 using UnityEngine;
+using static RenpyStandardProxyLib;
 
 namespace DokiModTest
 {
@@ -51,6 +55,16 @@ namespace DokiModTest
 
         public override void OnLoad()
         {
+            ConsoleUtils.Log("DMT", "Testing RenpyScript functions..");
+
+            //string testScript = "script.rpy";
+
+            //RenpyScript renpyScript = RenpyScript.FromBinary(File.ReadAllBytes(testScript));
+
+            //Console.WriteLine(renpyScript == null);
+            //Console.WriteLine(renpyScript.Characters.characterKeys.Count);
+            //Console.WriteLine(renpyScript.Lines.linesdict.Count);
+
             //Console.WriteLine("I'm loading :D");
             UiHandler.OverrideWallpaper("normal_fucking_background.jpg", false);
             //UiHandler.AddEvent("start_menu_open", new Action(() =>
@@ -73,21 +87,46 @@ namespace DokiModTest
 
         private void do_custom_choice_menu()
         {
-            UiHandler.ShowChoiceMenu(new List<ChoiceMenuButton>()
+            //UiHandler.ShowChoiceMenu(new List<ChoiceMenuButton>()
+            //{
+            //    new ChoiceMenuButton("Test", new Action(() =>
+            //    {
+            //        Console.WriteLine("This is a test!");
+            //    })),
+            //    new ChoiceMenuButton("Test 2", new Action(() =>
+            //    {
+            //        Console.WriteLine("This is a test 2!");
+            //    })),
+            //    new ChoiceMenuButton("Test 3", new Action(() =>
+            //    {
+            //        Console.WriteLine("This is a test 3!");
+            //    }))
+            //});
+
+            UiHandler.ShowStandardChoiceMenu(new List<StandardChoiceMenuOption>()
             {
-                new ChoiceMenuButton("Test", new Action(() =>
-                {
-                    Console.WriteLine("This is a test!");
-                })),
-                new ChoiceMenuButton("Test 2", new Action(() =>
-                {
-                    Console.WriteLine("This is a test 2!");
-                })),
-                new ChoiceMenuButton("Test 3", new Action(() =>
-                {
-                    Console.WriteLine("This is a test 3!");
-                }))
+                new StandardChoiceMenuOption("Test", "test2"),
+                new StandardChoiceMenuOption("Testing", "test4")
             });
+
+            if (UiHandler.ChoiceMade == "test2")
+            {
+                Console.WriteLine("User selected test2!");
+                UiHandler.ChoiceMade = null;
+            }
+
+            //UiHandler.ShowStandardChoiceMenu(new List<StandardChoiceMenuOption>()
+            //{
+            //    new StandardChoiceMenuOption("Click to say something in console", new Action(() =>
+            //    {
+            //        Console.WriteLine("Something in console!");
+            //    }))
+            //});
+
+            //UiHandler.ShowStandardChoiceMenu(new List<StandardChoiceMenuOption>()
+            //{
+            //    new StandardChoiceMenuOption("Click to jump", "end_game", false)
+            //});
         }
 
         private static bool QuitPatch(ref bool __result)
