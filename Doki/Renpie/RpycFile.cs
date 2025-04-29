@@ -79,13 +79,13 @@ namespace Doki.Renpie.Rpyc
             // - LIST (python objects)
         }
 
-        private List<Line> ProcessBlock(PythonObj pythonObj)
+        private List<Line> ProcessBlock(PythonObj pythonObj, string respectiveLabel)
         {
             List<Line> retLines = new List<Line>();
 
             pythonObj.List.ForEach(x =>
             {
-                Line outLine = x.AsRenpyLine();
+                Line outLine = x.AsRenpyLine(respectiveLabel);
 
                 if (outLine != null)
                     retLines.Add(outLine);
@@ -104,6 +104,12 @@ namespace Doki.Renpie.Rpyc
 
             //Console.WriteLine(renBlock.ToString());
 
+            //foreach(var entry in rawBlock.Fields)
+            //{
+            //    Console.WriteLine($"====== {entry.Key} BEGIN ======");
+            //    Console.WriteLine(entry.Value.ToString());
+            //    Console.WriteLine($"====== {entry.Key} END ======");
+            //}
             //handle parameters(under rawBlocks.Fields["parameters"] later)
 
             BlockEntryPoint entryPoint = new BlockEntryPoint(name, 0);
@@ -113,7 +119,7 @@ namespace Doki.Renpie.Rpyc
             block.callParameters = new RenpyCallParameter[0];
             block.Label = name;
             block.IsMainLabel = false;
-            block.Contents = ProcessBlock(renBlock);
+            block.Contents = ProcessBlock(renBlock, name);
 
             Labels.Add(entryPoint, block);
         }
@@ -128,7 +134,7 @@ namespace Doki.Renpie.Rpyc
             
             foreach(PythonObj initBlock in initBlockContents)
             {
-                Line equivalent = initBlock.AsRenpyLine();
+                Line equivalent = initBlock.AsRenpyLine(null);
 
                 retLines.Add(equivalent);
             }

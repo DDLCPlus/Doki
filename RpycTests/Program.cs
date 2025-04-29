@@ -1,6 +1,7 @@
 ﻿using Doki.Renpie.Rpyc;
 using System;
 using System.IO;
+using System.Linq;
 
 namespace RpycTests
 {
@@ -12,7 +13,8 @@ namespace RpycTests
 
             RpycFile rpyc = new RpycFile(contents);
 
-            Console.WriteLine(rpyc.Valid);
+            foreach(var b in rpyc.Labels.First().Value.Contents)
+                Console.WriteLine(b.GetType());
 
             Console.ReadKey();
         }
