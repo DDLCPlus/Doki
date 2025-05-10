@@ -12,6 +12,7 @@ namespace Doki
     {
         public static bool DontLoad = false;
         public static bool DontMod = false;
+        public static bool RpaMod = false;
         public static bool NoConsole = false;
         public static bool DebugLogs = false;
         public static bool LogUnityExceptions = false;

@@ -58,6 +58,9 @@ namespace Doki.Extensions
                 HarmonyInstance.Patch(typeof(Renpy).GetMethod("ForceUnloadAssetBundles"), prefix: new HarmonyMethod(typeof(PatchUtils).GetMethod("DontUnloadPls", BindingFlags.Static | BindingFlags.NonPublic)));
                 HarmonyInstance.Patch(typeof(UnityEngine.Debug).GetMethod("LogException", new[] { typeof(Exception) }), prefix: new HarmonyMethod(typeof(PatchUtils).GetMethod("LogExceptionPatch", BindingFlags.Static | BindingFlags.NonPublic)));
                 HarmonyInstance.Patch(typeof(UnityEngine.Debug).GetMethod("Log", new[] { typeof(object) }), prefix: new HarmonyMethod(typeof(PatchUtils).GetMethod("GeneralLogPatch", BindingFlags.Static | BindingFlags.NonPublic)));
+                HarmonyInstance.Patch(typeof(RenpyScriptExecution).GetMethod("Run"), prefix: new HarmonyMethod(typeof(PatchUtils).GetMethod("PythonPatch", BindingFlags.Static | BindingFlags.NonPublic)));
+                HarmonyInstance.Patch(AccessTools.Method(typeof(Line), "IsValid"), prefix: new HarmonyMethod(typeof(PatchUtils).GetMethod("IsValidPatch", BindingFlags.Static | BindingFlags.NonPublic)));
+                HarmonyInstance.Patch(typeof(ExpressionRuntime).GetMethod("ExecuteWithInstance"), prefix: new HarmonyMethod(typeof(PatchUtils).GetMethod("ExecuteWithInstancePatch", BindingFlags.Static | BindingFlags.NonPublic)));
 
                 foreach (var mod in DokiModsManager.Mods)
                 {
@@ -97,6 +100,13 @@ namespace Doki.Extensions
 
         public static void EnablePatches() => Patched = true;
 
+        private static bool IsValidPatch(ref bool __result)
+        {
+            ConsoleUtils.Log("Doki.Line.IsValid", "Overriden to True");
+            __result = true;
+            return false;
+        }
+
         private static bool DontUnloadPls()
         {
             if (!Patched)
@@ -110,9 +120,69 @@ namespace Doki.Extensions
             return !BootLoader.CleanConsole;
         }
 
+        private static bool ExecuteWithInstancePatch(ExpressionRuntime __instance, DataValue __result, CompiledExpression compiled, IContext context)
+        {
+            //if (compiled == null || (compiled.instructions.Count == 0 && compiled.constantFloats.Count == 0 && compiled.constantStrings.Count == 0 && compiled.constantObjects.Count == 0))
+            //{
+            //    __result = new DataValue("STRING");
+            //    return false;
+            //}
+
+            //ConsoleUtils.Log("EXECUTE WITH INSTANCE", $"Trying to execute expression: (START)");
+
+            //foreach (var instruction in compiled.instructions)
+            //{
+            //    Console.WriteLine(instruction.type + " - argument index: " + instruction.argumentIndex);
+            //}
+
+            //foreach(var flot in compiled.constantFloats)
+            //{
+            //    Console.WriteLine(flot + " - FLOAT");
+            //}
+
+            //foreach (var flot2 in compiled.constantStrings)
+            //{
+            //    Console.WriteLine(flot2 + " - STRING");
+            //}
+
+            //foreach (var obj in compiled.constantObjects)
+            //{
+            //    Console.WriteLine(obj.GetType() + " - " + obj.ToString() + " - OBJ (STR)");
+            //}
+
+            return true;
+        }
+
         private static bool LogExceptionPatch(Exception exception)
         {
             return !BootLoader.CleanConsole;
+        }
+
+        private static bool PythonPatch(RenpyScriptExecution __instance, RenpyExecutionContext ____executionContext, string label)
+        {
+            if (!Patched)
+                return true;
+
+            foreach (Script script in ScriptsHandler.LoadedScripts)
+            {
+                if (script.EarlyPython.Count > 0)
+                {
+                    foreach (var earlyPy in script.EarlyPython)
+                        Doki.Renpie.Rpyc.Extensions.ExecutePython(earlyPy, ____executionContext);
+
+                    script.EarlyPython.Clear();
+                }
+
+                if (script.Python.Count > 0)
+                {
+                    foreach (var py in script.Python)
+                        Doki.Renpie.Rpyc.Extensions.ExecutePython(py, ____executionContext);
+
+                    script.Python.Clear();
+                }
+            }
+
+            return true;
         }
 
         private static bool InLinePythonPatch(RenpyScript __instance, InLinePython InlinePython, ref object __result)

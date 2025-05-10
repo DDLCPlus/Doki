@@ -13,6 +13,7 @@ using UnityEngine;
 using System.IO;
 using SimpleExpressionEngine;
 using System.ComponentModel;
+using Doki.Helpers;
 
 namespace Doki.Renpie
 {
@@ -24,8 +25,11 @@ namespace Doki.Renpie
         public Dictionary<string, CharacterData> Characters = [];
         public Dictionary<object, Line> Jumps = [];
         public List<string> Sounds = [];
+        public List<RenpyBlock> InitBlocks = new List<RenpyBlock>();
         public Dictionary<string, Tuple<BlockEntryPoint, RenpyBlock>> BlocksDict = []; //Block label -> Commands translated
         public Dictionary<int, string> InlinePython = [];
+        public List<PythonObj> Python = new List<PythonObj>();
+        public List<PythonObj> EarlyPython = new List<PythonObj>();
         private System.Random random = new System.Random();
 
         public Parser.Dialogue RetrieveLineFromText(int textID)
@@ -413,7 +417,6 @@ namespace Doki.Renpie
 
                 retLines.Add(inlinePy);
             }
-
 
             if (define.Raw.Contains("$"))
                 retLines.Add(new RenpyOneLinePython(define.Raw));

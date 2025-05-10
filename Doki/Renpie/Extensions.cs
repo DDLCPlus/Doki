@@ -1,18 +1,27 @@
-﻿using Doki.Helpers;
+﻿using Doki.Extensions;
+using Doki.Helpers;
 using Doki.Renpie.Parser;
 using Doki.Renpie.RenDisco;
 using HarmonyLib;
 using RenpyParser;
 using RenPyParser.VGPrompter.DataHolders;
+using SimpleExpressionEngine;
 using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Data;
 using System.Diagnostics;
+using System.IO;
 using System.Linq;
+using System.Linq.Expressions;
+using System.Reflection.Emit;
+using System.Runtime.Remoting.Contexts;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Xml.Linq;
 using UnityEngine.UIElements;
+using static RenpyStandardProxyLib;
 
 namespace Doki.Renpie.Rpyc
 {
@@ -20,33 +29,44 @@ namespace Doki.Renpie.Rpyc
     {
         public static bool IsValidBlock(this PythonObj pythonObj) => pythonObj.Type == PythonObj.ObjType.NEWOBJ;
 
-        public static Line ParsePyExpression(PythonObj pythonObj)
+        //Thanks Kizby <3
+        public static string ExtractPyExpr(PythonObj expr)
         {
-            //foreach (var entry in pythonObj.Fields)
-            //{
-            //    Console.WriteLine($"====== {entry.Key} BEGIN ======");
-            //    Console.WriteLine(entry.Value.ToString());
-            //    Console.WriteLine($"====== {entry.Key} END ======");
-            //}
+            if (expr.Type == PythonObj.ObjType.NONE)
+                return "None";
 
-            //PythonObj code = pythonObj.Fields["code"];
+            if (expr.Type == PythonObj.ObjType.STRING)
+                return expr.String;
 
-            //if (pythonObj.Fields.ContainsKey("store"))
-            //{
-            //    PythonObj store = code.Fields["store"];
+            if (expr.Name == "renpy.ast.PyExpr")
+                return expr.Args.Tuple[0].String;
 
-            //    string variableAssignmentRaw = store.Args.Tuple[0].String;
+            else if (expr.Name == "renpy.ast.PyCode")
+            {
+                var source = expr.Fields["source"];
+                return ExtractPyExpr(expr.Fields["source"]);
+            }
 
-            //    if (!variableAssignmentRaw.Contains(" = "))
-            //    {
-            //        //Not variable assignment
-            //        return null;
-            //    }
-            //    else
-            //        return new RenpyOneLinePython($"$ {variableAssignmentRaw}");
-            //}
+            return "";
+        }
 
-            return null;
+        public static DataValue ExecutePython(PythonObj python, RenpyExecutionContext context)
+        {
+            var rawExpression = ExtractPyExpr(python.Fields["code"]);
+
+            try
+            {
+                var expression = new CompiledExpression();
+                SimpleExpressionEngine.Parser.Parse(new Tokenizer(new StringReader(rawExpression))).Compile(expression);
+                return ExpressionRuntime.Execute(expression, context);
+            }
+            catch (SyntaxException e)
+            {
+                ConsoleUtils.Error("Doki.Renpie.Extensions", e);
+                //stub for now
+                //unparseablePython.Add(Tuple.Create(rawExpression, e));
+            }
+            return new DataValue();
         }
 
         private static RenpyShow ParseShowExpression(PythonObj pythonObj)
@@ -195,6 +215,8 @@ namespace Doki.Renpie.Rpyc
                 }
                 else if (line.String.StartsWith("window "))
                     return ParseWindowExpression(line.String); // IScriptLine scriptLine = ((IWrappable)line).ToWrapper(executionContext.script);
+                else if (line.String.StartsWith("pause "))
+                    return new RenpyPause(line.String, SimpleExpressionEngine.Parser.Compile(line.String));
                 else
                     Console.WriteLine(line.String + " - HANDLE!");
             }
@@ -202,61 +224,172 @@ namespace Doki.Renpie.Rpyc
             return retLine;
         }
 
-        public static string CodeAsString(this PythonObj pythonObj)
+        private static RenpyOneLinePython ParseDefinition(PythonObj pythonObj)
         {
-            if (pythonObj.Name != "renpy.ast.PyCode")
-                throw new Exception($"Invalid PyCode to be extracted. Expected renpy.ast.PyCode but got {pythonObj.Name}!");
-
-            PythonObj store = pythonObj.Fields["store"];
-
-            if (store == null)
-                throw new Exception("Could not parse raw assignment value of PyCode. Unable to find source field.");
-
-            string rawValue = store.Args.Tuple[0].String;
-
-            if (string.IsNullOrEmpty(rawValue))
-                throw new Exception("Could not parse raw assignment value of PyCode. Unable to extract inner value argument.");
-
-            return rawValue;
-        }
-
-        public static RenpyDefinition AsRenpyDefinition(this PythonObj pythonObj)
-        {
-            if (pythonObj.Name != "renpy.ast.Define")
-                throw new Exception($"Invalid renpy definition to be parsed. Expected renpy.ast.Define but got {pythonObj.Name}!");
+            //if (pythonObj.Name != "renpy.ast.Define" || pythonObj.Name != "renpy.ast.Default")
+            //    throw new Exception($"Invalid renpy definition to be parsed. Expected renpy.ast.Define (or Default) but got {pythonObj.Name}!");
 
             string varname = pythonObj.Fields["varname"].String;
 
             if (string.IsNullOrEmpty(varname))
                 throw new Exception($"Could not parse RenpyDefinition from AST. Couldn't find varname. Are you sure this is a valid Definition?");
 
-            string rawCode = pythonObj.Fields["code"].CodeAsString();
+            var pyCodeDefinition = pythonObj.Fields["code"];
 
-            return new RenpyDefinition(varname, rawCode, DefinitionType.Define);
+            if (pyCodeDefinition.Name != "renpy.ast.PyCode")
+                throw new Exception($"Invalid PyCode to be extracted. Expected renpy.ast.PyCode but got {pyCodeDefinition.Name}!");
+
+            var pyStore = pythonObj.Fields["store"].String;
+
+            if (pyStore == null)
+                throw new Exception("Could not parse raw assignment value of PyCode. Unable to find source field.");
+
+            var pySource = pyCodeDefinition.Fields["source"];
+
+            string rawValue = ExtractPyExpr(pyCodeDefinition);
+
+            if (string.IsNullOrEmpty(rawValue))
+                throw new Exception("Could not parse raw assignment value of PyCode. Unable to extract inner value argument.");
+
+            ConsoleUtils.Debug("Extensions.ParseDefinition", $"$ {varname} = {rawValue}");
+
+            return new RenpyOneLinePython($"$ {varname} = {rawValue}");
+        }
+
+        private static RenpyGoTo ParseCall(PythonObj pythonObj)
+        {
+            string label = pythonObj.Fields["label"].String;
+
+            //handle arguments(?) under .Fields["arguments"] (should be <none>, usually)
+
+            return new RenpyGoTo(label, true, $"call {label}");
+        }
+
+        //Thanks Kizby, part 2.
+        public static List<Line> HandleWhileStatement(PythonObj pythonObj, string label, List<Line> ContainerLines, Dictionary<object, Line> JumpMap)
+        {
+            List<Line> retLines = new List<Line>();
+
+            var conditionStr = ExtractPyExpr(pythonObj.Fields["condition"]);
+            var condition = SimpleExpressionEngine.Parser.Compile(conditionStr);
+            var gotoStmt = new RenpyGoToLineUnless(conditionStr, -1);
+            gotoStmt.CompiledExpression = condition;
+            retLines.Add(gotoStmt);
+
+            foreach (var stmt in pythonObj.Fields["block"].List)
+                ContainerLines.Add(stmt.AsRenpyLine(label));
+
+            var loopGoto = new RenpyGoToLine(-1);
+
+            retLines.Add(loopGoto);
+            JumpMap.Add(loopGoto, gotoStmt);
+
+            var gotoTarget = new RenpyNOP();
+            retLines.Add(gotoTarget);
+            JumpMap.Add(gotoStmt, gotoTarget);
+
+            return retLines;
+        }
+
+        // Thanks, Kizby.
+        public static List<Line> HandleIfStatement(PythonObj pythonObj, string label, List<Line> ContainerLines, Dictionary<object, Line> JumpMap)
+        {
+            //return goto Stmt and hard Goto and after If 
+            List<Line> retLines = new List<Line>();
+
+            var entries = pythonObj.Fields["entries"].List;
+            var afterIf = new RenpyNOP();
+            RenpyGoToLineUnless lastGoto = null;
+
+            foreach (var entry in entries)
+            {
+                var conditionString = ExtractPyExpr(entry.Tuple[0]);
+                var condition = SimpleExpressionEngine.Parser.Compile(conditionString);
+                var gotoStmt = new RenpyGoToLineUnless(conditionString, -1);
+
+                gotoStmt.CompiledExpression = condition;
+                retLines.Add(gotoStmt);
+
+                if (lastGoto != null)
+                    JumpMap.Add(lastGoto, gotoStmt);
+
+                lastGoto = gotoStmt;
+
+                foreach (var stmt in entry.Tuple[1].List)
+                    ContainerLines.Add(stmt.AsRenpyLine(label));
+
+                var hardGoto = new RenpyGoToLine(-1);
+                JumpMap.Add(hardGoto, afterIf);
+                retLines.Add(hardGoto);
+            }
+
+            JumpMap.Add(lastGoto, afterIf);
+            retLines.Add(afterIf);
+
+            return retLines;
+        }
+
+        //Kizby again - I'm lazy.
+        public static Line ParsePythonStatement(PythonObj pythonObj, string respectiveLabel)
+        {
+            var codeString = ExtractPyExpr(pythonObj.Fields["code"]);
+
+            if (codeString.Contains("\n"))
+            {
+                RenpyInlinePython renpyInlinePython = new RenpyInlinePython(codeString, respectiveLabel);
+                InLinePython m_InlinePython = (InLinePython)renpyInlinePython.GetPrivateField("m_InlinePython");
+
+                if (m_InlinePython.hash == 2039296337)
+                {
+                    // default first run setting block - kizby
+                    m_InlinePython.hash = 318042419;
+                    m_InlinePython.functionName = "splashscreen_inlinepythonblock_318042419";
+                }
+                else if (m_InlinePython.hash == 1991019598)
+                {
+                    // default s_kill_early check
+                    m_InlinePython.hash = 85563775;
+                    m_InlinePython.functionName = "splashscreen_inlinepythonblock_85563775";
+                }
+
+                return renpyInlinePython;
+            }
+            else
+            {
+                RenpyOneLinePython renpyOneLinePython = new RenpyOneLinePython("$" + codeString);
+
+                return renpyOneLinePython;
+            }
         }
 
         public static Line AsRenpyLine(this PythonObj pythonObj, string respectiveLabel)
         {
-            switch(pythonObj.Name)
+            /*
+             * renpy.ast.Init
+1 - init
+2 - init - 1
+3 - init - renpy.ast.Define of 1
+            */
+
+            ConsoleUtils.Debug("Extensions.AsRenpyLine", "Handling " + pythonObj.Name + "...");
+            switch (pythonObj.Name)
             {
                 default:
-                    Console.WriteLine("NAME - " + pythonObj.Name);
-                    return null;
-                //case "renpy.ast.Python":
-                //    object pyExprRes = ParsePyExpression(pythonObj);
-
-                //    if (pyExprRes != null)
-                //        return (Line)pyExprRes;
-
-                //    break;
+                    Console.WriteLine("NAME - " + pythonObj.Name + " - returning dummy line");
+                    return null; //return dummy line
+                case "renpy.ast.Python":
+                    return ParsePythonStatement(pythonObj, respectiveLabel);
+                case "renpy.ast.Pass":
+                    return new RenpyPass();
+                case "renpy.ast.Call":
+                    return ParseCall(pythonObj);
                 case "renpy.ast.Show":
                     return ParseShowExpression(pythonObj);
                 case "renpy.ast.Hide":
                     return ParseHideExpression(pythonObj);
+                case "renpy.ast.Default":
                 case "renpy.ast.Define":
-                    RenpyDefinition definition = pythonObj.AsRenpyDefinition();
-
-                    return new RenpyOneLinePython($"$ {definition.Name} = {definition.Value}");
+                    return ParseDefinition(pythonObj);
                 case "renpy.ast.Return":
                     return new RenpyReturn();
                 case "renpy.ast.Scene":

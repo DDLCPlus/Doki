@@ -35,7 +35,7 @@ namespace Doki.Mods
 
         public static void LoadMods()
         {
-            if (BootLoader.DontMod)
+            if (BootLoader.DontMod || BootLoader.RpaMod)
                 return;
 
             bool IsReload = Mods.Count() > 0;
@@ -43,13 +43,18 @@ namespace Doki.Mods
             ConsoleUtils.Log("DokiModsManager", $"{(IsReload ? "Rel" : "L")}oading Doki Mods...");
 
             if (IsReload)
-            {
                 UnloadMods();
-            }
 
             if (Directory.GetDirectories("Doki\\Mods").Length == 0)
             {
                 ActiveScriptModifierIndex = -1;
+                return;
+            }
+
+            if (Directory.Exists("game") && Directory.GetFiles("game").Length > 0)
+            {
+                ConsoleUtils.Log("DotRPA", "Detected classic game modding method - kicking in dotRPA support");
+                BootLoader.RpaMod = true;
                 return;
             }
 

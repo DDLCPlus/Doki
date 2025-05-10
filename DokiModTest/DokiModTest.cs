@@ -59,7 +59,7 @@ namespace DokiModTest
 
             //string testScript = "script.rpy";
 
-            //RenpyScript renpyScript = RenpyScript.FromBinary(File.ReadAllBytes(testScript));
+            RenpyScript renpyScript = RenpyScript.FromBinary(File.ReadAllBytes(testScript));
 
             //Console.WriteLine(renpyScript == null);
             //Console.WriteLine(renpyScript.Characters.characterKeys.Count);

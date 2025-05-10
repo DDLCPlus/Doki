@@ -1,10 +1,12 @@
 ﻿using Doki.Extensions;
+using Doki.Helpers;
 using Doki.Mods;
 using Doki.Renpie;
 using System;
 using System.IO;
 using System.Linq;
 using System.Reflection;
+using System.Threading;
 using UnityEngine;
 
 namespace Doki.Core
@@ -40,6 +42,7 @@ THE SOFTWARE.
             {
                 ConsoleUtils.Log("Doki", "First time setup.. creating necessary directories and loading assets..");
 
+                Directory.CreateDirectory("game"); //WIP Rpa modding support
                 Directory.CreateDirectory("Doki");
                 Directory.CreateDirectory("Doki\\Mods");
                 Directory.CreateDirectory("Doki\\TranslatedModAssets");
@@ -49,10 +52,10 @@ THE SOFTWARE.
             }
 
             DeleteAllContents("Doki\\TranslatedModAssets");
-            
+
             DokiModsManager.LoadMods();
 
-            if (!BootLoader.DontMod)
+            if (!BootLoader.DontMod && !BootLoader.RpaMod)
             {
                 DokiMod contextMod = DokiModsManager.Mods.FirstOrDefault(x => x.ModifiesContext);
                 if (contextMod != null)
@@ -91,9 +94,13 @@ THE SOFTWARE.
                     }
                 }
 
-                ConsoleUtils.Log("Doki", "Mod asset bundles loaded. Applying patches...");
-                PatchUtils.ApplyPatches();
+                ConsoleUtils.Log("Doki", "Mod asset bundles loaded.");
             }
+
+            if (BootLoader.RpaMod)
+                new Thread(() => DotRPA.Init()).Start();
+
+            PatchUtils.ApplyPatches();
 
             Application.logMessageReceived += Application_logMessageReceived;
 

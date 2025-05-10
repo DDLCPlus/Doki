@@ -1,9 +1,11 @@
-﻿using Doki.Helpers;
+﻿using Doki.Extensions;
+using Doki.Helpers;
 using Microsoft.VisualBasic;
 using RenpyParser;
 using RenPyParser.VGPrompter.DataHolders;
 using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.IO;
 using System.IO.Compression;
 using System.Linq;
@@ -18,7 +20,13 @@ namespace Doki.Renpie.Rpyc
 
         public Dictionary<BlockEntryPoint, RenpyBlock> Labels = new Dictionary<BlockEntryPoint, RenpyBlock>();
 
+        public Dictionary<object, Line> JumpMap = new Dictionary<object, Line>(); //Credits to Kizby for this
+
         public List<RenpyInitBlock> Inits = new List<RenpyInitBlock>();
+
+        public List<PythonObj> EarlyPy = new List<PythonObj>();
+
+        public List<PythonObj> Py = new List<PythonObj>();
 
         private int FindZlibStart(byte[] data, byte[][] headers)
         {
@@ -64,6 +72,7 @@ namespace Doki.Renpie.Rpyc
                 if (pythonObj.Type != PythonObj.ObjType.TUPLE)
                 {
                     Valid = false;
+
                     throw new Exception("Invalid .rpyc file!");
                 }
 
@@ -83,13 +92,25 @@ namespace Doki.Renpie.Rpyc
         {
             List<Line> retLines = new List<Line>();
 
-            pythonObj.List.ForEach(x =>
+            foreach(var x in pythonObj.List)
             {
+                if (x.Name == "renpy.ast.If")
+                {
+                    retLines.AddRange(Extensions.HandleIfStatement(x, respectiveLabel, retLines, JumpMap));
+                    continue;
+                }
+
+                if (x.Name == "renpy.ast.While")
+                {
+                    retLines.AddRange(Extensions.HandleWhileStatement(x, respectiveLabel, retLines, JumpMap));
+                    continue;
+                }
+
                 Line outLine = x.AsRenpyLine(respectiveLabel);
 
                 if (outLine != null)
                     retLines.Add(outLine);
-            });
+            }
 
             return retLines;
         }
@@ -121,6 +142,25 @@ namespace Doki.Renpie.Rpyc
             block.IsMainLabel = false;
             block.Contents = ProcessBlock(renBlock, name);
 
+            var container = block.Contents;
+
+            foreach(var entry in JumpMap)
+            {
+                switch (entry.Key)
+                {
+                    case RenpyGoToLine goToLine:
+                        goToLine.TargetLine = container.IndexOf(JumpMap[goToLine]);
+                        break;
+                    case RenpyGoToLineUnless goToLineUnless:
+                        goToLineUnless.TargetLine = container.IndexOf(JumpMap[goToLineUnless]);
+                        break;
+                    case RenpyMenuInputEntry menuInputEntry:
+                        menuInputEntry.gotoLineTarget = container.IndexOf(entry.Value);
+                        break;
+                }
+            }
+
+            JumpMap.Clear();
             Labels.Add(entryPoint, block);
         }
 
@@ -131,12 +171,19 @@ namespace Doki.Renpie.Rpyc
             List<Line> retLines = new List<Line>();
 
             List<PythonObj> initBlockContents = pythonObj.Fields["block"].List;
-            
-            foreach(PythonObj initBlock in initBlockContents)
+
+            foreach (PythonObj initBlock in initBlockContents)
             {
+                if (initBlock.Name == "renpy.ast.EarlyPython")
+                {
+                    Py.Add(initBlock);
+                    continue;
+                }
+
                 Line equivalent = initBlock.AsRenpyLine(null);
 
-                retLines.Add(equivalent);
+                if (equivalent != null)
+                    retLines.Add(equivalent);
             }
 
             Inits.Add(new RenpyInitBlock(retLines));
